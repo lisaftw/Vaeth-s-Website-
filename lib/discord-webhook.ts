@@ -12,6 +12,9 @@ interface DiscordWebhookPayload {
       text: string
     }
     timestamp: string
+    thumbnail?: {
+      url: string
+    }
   }>
 }
 

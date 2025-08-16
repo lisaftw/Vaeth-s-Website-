@@ -27,6 +27,7 @@ export async function submitApplication(formData: FormData) {
   // Send Discord notification
   try {
     await sendDiscordNotification(newApplication)
+    console.log("Discord notification sent successfully for:", name)
   } catch (error) {
     console.error("Failed to send Discord notification:", error)
     // Continue with the application process even if webhook fails

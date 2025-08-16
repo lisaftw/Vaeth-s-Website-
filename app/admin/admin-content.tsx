@@ -1,59 +1,49 @@
 "use client"
 
-import { CardDescription } from "@/components/ui/card"
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  Check,
-  X,
   Users,
   ExternalLink,
-  User,
+  Check,
+  X,
+  Crown,
+  Shield,
   Settings,
-  MessageSquare,
-  Server,
   Plus,
   Trash2,
   Edit,
   Save,
   AlertTriangle,
 } from "lucide-react"
+import { getApplicationsData, getServersData, type Application, type Server } from "@/lib/data-store"
 import { approveApplication } from "@/app/actions/approve-application"
 import { rejectApplication } from "@/app/actions/reject-application"
-import { getApplications } from "@/app/actions/get-applications"
-import { getServers } from "@/app/actions/get-servers"
+import { removeServer } from "@/app/actions/remove-server"
 import { addServer } from "@/app/actions/add-server"
 import { updateServer } from "@/app/actions/update-server"
-import { removeServer } from "@/app/actions/remove-server"
+import { CardDescription } from "@/components/ui/card"
 import { manageAnnouncements } from "@/app/actions/manage-announcements"
 import { manageSettings } from "@/app/actions/manage-settings"
-import { AdminFormButton } from "@/components/admin-form-button"
 import { AdminDebugEnhanced } from "@/components/admin-debug-enhanced"
 import type React from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Shield, Lock } from "lucide-react"
+import { Lock } from "lucide-react"
 import Link from "next/link"
 
-interface Application {
-  id: string
-  serverName: string
-  description: string
-  memberCount: number
-  serverUrl: string
-  representative: string
-  status: "pending" | "approved" | "rejected"
-  submittedAt: string
+interface AdminContentProps {
+  initialApplications: Application[]
+  initialServers: Server[]
 }
 
 const ADMIN_PASSWORD = "unified2024"
 
-export default function AdminPanelContent() {
+export default function AdminContent({ initialApplications, initialServers }: AdminContentProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -61,8 +51,8 @@ export default function AdminPanelContent() {
   const [mounted, setMounted] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeTab, setActiveTab] = useState("applications")
-  const [applications, setApplications] = useState<Application[]>([])
-  const [servers, setServers] = useState<any[]>([])
+  const [applications, setApplications] = useState<Application[]>(initialApplications)
+  const [servers, setServers] = useState<Server[]>(initialServers)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [passwordInput, setPasswordInput] = useState("")
@@ -70,12 +60,12 @@ export default function AdminPanelContent() {
   const [newServer, setNewServer] = useState({
     name: "",
     description: "",
-    memberCount: 0,
-    url: "",
-    representative: "",
-    logoUrl: "",
+    members: "",
+    invite: "",
+    logo: "",
   })
-  const [editingServer, setEditingServer] = useState<string | null>(null)
+  const [editingServer, setEditingServer] = useState<number | null>(null)
+  const [editServerData, setEditServerData] = useState<Server | null>(null)
   const [announcement, setAnnouncement] = useState("")
   const [settings, setSettings] = useState({
     maxServers: 50,
@@ -129,14 +119,14 @@ export default function AdminPanelContent() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [appsResult, serversResult] = await Promise.all([getApplications(), getServers()])
+      const [appsResult, serversResult] = await Promise.all([getApplicationsData(), getServersData()])
 
-      if (appsResult.success) {
-        setApplications(appsResult.applications)
+      if (appsResult) {
+        setApplications(appsResult)
       }
 
-      if (serversResult.success) {
-        setServers(serversResult.servers)
+      if (serversResult) {
+        setServers(serversResult)
       }
     } catch (error) {
       console.error("Error loading data:", error)
@@ -145,67 +135,113 @@ export default function AdminPanelContent() {
     }
   }
 
-  const handleApprove = async (applicationId: string) => {
+  // Refresh data
+  const refreshData = () => {
+    setApplications(getApplicationsData())
+    setServers(getServersData())
+  }
+
+  const handleApprove = async (index: number) => {
+    setLoading(true)
     try {
-      const result = await approveApplication(applicationId)
-      if (result.success) {
-        await loadData()
-      }
+      const formData = new FormData()
+      formData.append("index", index.toString())
+      await approveApplication(formData)
+      refreshData()
     } catch (error) {
       console.error("Error approving application:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleReject = async (applicationId: string) => {
+  const handleReject = async (index: number) => {
+    setLoading(true)
     try {
-      const result = await rejectApplication(applicationId)
-      if (result.success) {
-        await loadData()
-      }
+      const formData = new FormData()
+      formData.append("index", index.toString())
+      await rejectApplication(formData)
+      refreshData()
     } catch (error) {
       console.error("Error rejecting application:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleAddServer = async () => {
-    try {
-      const result = await addServer(newServer)
-      if (result.success) {
-        setNewServer({
-          name: "",
-          description: "",
-          memberCount: 0,
-          url: "",
-          representative: "",
-          logoUrl: "",
-        })
-        await loadData()
-      }
-    } catch (error) {
-      console.error("Error adding server:", error)
-    }
-  }
+  const handleRemoveServer = async (index: number) => {
+    if (!confirm("Are you sure you want to remove this server?")) return
 
-  const handleUpdateServer = async (serverId: string, updates: any) => {
+    setLoading(true)
     try {
-      const result = await updateServer(serverId, updates)
-      if (result.success) {
-        setEditingServer(null)
-        await loadData()
-      }
-    } catch (error) {
-      console.error("Error updating server:", error)
-    }
-  }
-
-  const handleRemoveServer = async (serverId: string) => {
-    try {
-      const result = await removeServer(serverId)
-      if (result.success) {
-        await loadData()
-      }
+      const formData = new FormData()
+      formData.append("index", index.toString())
+      await removeServer(formData)
+      refreshData()
     } catch (error) {
       console.error("Error removing server:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddServer = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newServer.name || !newServer.description || !newServer.members || !newServer.invite) {
+      alert("Please fill in all required fields")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append("name", newServer.name)
+      formData.append("description", newServer.description)
+      formData.append("members", newServer.members)
+      formData.append("invite", newServer.invite)
+      formData.append("logo", newServer.logo)
+
+      await addServer(formData)
+      setNewServer({ name: "", description: "", members: "", invite: "", logo: "" })
+      refreshData()
+    } catch (error) {
+      console.error("Error adding server:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const startEditServer = (index: number, server: Server) => {
+    setEditingServer(index)
+    setEditServerData({ ...server })
+  }
+
+  const cancelEditServer = () => {
+    setEditingServer(null)
+    setEditServerData(null)
+  }
+
+  const handleUpdateServer = async (index: number) => {
+    if (!editServerData) return
+
+    setLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append("index", index.toString())
+      formData.append("name", editServerData.name)
+      formData.append("description", editServerData.description)
+      formData.append("members", editServerData.members.toString())
+      formData.append("invite", editServerData.invite)
+      formData.append("logo", editServerData.logo || "")
+
+      await updateServer(formData)
+      setEditingServer(null)
+      setEditServerData(null)
+      refreshData()
+    } catch (error) {
+      console.error("Error updating server:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -398,7 +434,7 @@ export default function AdminPanelContent() {
       id: "servers",
       label: "Servers",
       shortLabel: "Servers",
-      icon: Server,
+      icon: Users,
       count: servers.length,
     },
     {
@@ -416,338 +452,467 @@ export default function AdminPanelContent() {
   ]
 
   return (
-    <div className="space-y-6">
-      {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 border-b border-gray-800">
-        {[
-          { id: "applications", label: "Applications", icon: MessageSquare },
-          { id: "servers", label: "Servers", icon: Server },
-          { id: "announcements", label: "Announcements", icon: MessageSquare },
-          { id: "settings", label: "Settings", icon: Settings },
-        ].map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => handleTabChange(id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors ${
-              activeTab === id ? "bg-red-600 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Applications Tab */}
-      {activeTab === "applications" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white">Pending Applications</h2>
-            <Badge variant="secondary" className="bg-yellow-600 text-white">
-              {applications.filter((app) => app.status === "pending").length} Pending
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-black text-white">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
+              Admin Command Center
+            </h1>
+            <p className="text-gray-400 mt-2">Manage alliance applications and servers</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <Badge variant="outline" className="border-red-500 text-red-400">
+              <Crown className="w-4 h-4 mr-2" />
+              Administrator
             </Badge>
           </div>
-
-          {applications.filter((app) => app.status === "pending").length === 0 ? (
-            <Card className="bg-gray-900 border-gray-800">
-              <CardContent className="p-8 text-center">
-                <MessageSquare className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                <p className="text-gray-400">No pending applications</p>
-              </CardContent>
-            </Card>
-          ) : (
-            applications
-              .filter((app) => app.status === "pending")
-              .map((application) => (
-                <Card key={application.id} className="bg-gray-900 border-gray-800">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2">
-                        <CardTitle className="text-xl text-red-400 flex items-center gap-2">
-                          <Server className="w-5 h-5" />
-                          {application.serverName}
-                        </CardTitle>
-                        <Badge className="bg-yellow-600 text-white">PENDING REVIEW</Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="space-y-4">
-                    <p className="text-gray-300 leading-relaxed">{application.description}</p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4 border-t border-gray-800">
-                      <div className="flex items-center gap-2 text-red-400">
-                        <Users className="w-4 h-4" />
-                        <span className="font-semibold">Member Count</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-red-400">
-                        <ExternalLink className="w-4 h-4" />
-                        <span className="font-semibold">Server Access</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-red-400">
-                        <User className="w-4 h-4" />
-                        <span className="font-semibold">Representative</span>
-                      </div>
-
-                      <div className="text-white font-mono text-lg">
-                        {application.memberCount.toLocaleString()}{" "}
-                        <span className="text-sm text-gray-400">members</span>
-                      </div>
-                      <div>
-                        <a
-                          href={application.serverUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:text-blue-300 underline text-sm"
-                        >
-                          Visit Server
-                        </a>
-                      </div>
-                      <div className="text-white font-mono">{application.representative}</div>
-                    </div>
-
-                    {/* Fixed Button Sizing */}
-                    <div className="flex gap-3 pt-4">
-                      <AdminFormButton
-                        action={async () => await handleApprove(application.id)}
-                        className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm"
-                      >
-                        <Check className="w-4 h-4" />
-                        APPROVE & WELCOME
-                      </AdminFormButton>
-
-                      <AdminFormButton
-                        action={async () => await handleReject(application.id)}
-                        className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm"
-                      >
-                        <X className="w-4 h-4" />
-                        DECLINE
-                      </AdminFormButton>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-          )}
         </div>
-      )}
 
-      {/* Servers Tab */}
-      {activeTab === "servers" && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white">Server Management</h2>
-            <Badge variant="secondary" className="bg-blue-600 text-white">
-              {servers.length} Active Servers
-            </Badge>
-          </div>
+        {/* Tab Navigation */}
+        <div className="flex space-x-1 mb-8 bg-gray-800/50 p-1 rounded-lg backdrop-blur-sm">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
+                activeTab === tab.id
+                  ? "bg-red-600 text-white shadow-lg"
+                  : "text-gray-400 hover:text-white hover:bg-gray-700/50"
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+              {tab.count > 0 && (
+                <Badge variant="secondary" className="ml-1 bg-gray-600 text-white">
+                  {tab.count}
+                </Badge>
+              )}
+            </button>
+          ))}
+        </div>
 
-          {/* Add New Server Form */}
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Plus className="w-5 h-5" />
-                Add New Server
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="serverName" className="text-white">
-                    Server Name
-                  </Label>
-                  <Input
-                    id="serverName"
-                    value={newServer.name}
-                    onChange={(e) => setNewServer({ ...newServer, name: e.target.value })}
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="memberCount" className="text-white">
-                    Member Count
-                  </Label>
-                  <Input
-                    id="memberCount"
-                    type="number"
-                    value={newServer.memberCount}
-                    onChange={(e) => setNewServer({ ...newServer, memberCount: Number.parseInt(e.target.value) || 0 })}
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="serverUrl" className="text-white">
-                    Server URL
-                  </Label>
-                  <Input
-                    id="serverUrl"
-                    value={newServer.url}
-                    onChange={(e) => setNewServer({ ...newServer, url: e.target.value })}
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="representative" className="text-white">
-                    Representative
-                  </Label>
-                  <Input
-                    id="representative"
-                    value={newServer.representative}
-                    onChange={(e) => setNewServer({ ...newServer, representative: e.target.value })}
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="description" className="text-white">
-                  Description
-                </Label>
-                <Textarea
-                  id="description"
-                  value={newServer.description}
-                  onChange={(e) => setNewServer({ ...newServer, description: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white"
-                  rows={3}
-                />
-              </div>
-              <Button
-                onClick={handleAddServer}
-                className="bg-green-600 hover:bg-green-700 text-white"
-                disabled={!newServer.name || !newServer.description}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Server
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Applications Tab */}
+        {activeTab === "applications" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Pending Applications</h2>
+              <Badge variant="outline" className="border-yellow-500 text-yellow-400">
+                {applications.length} Pending
+              </Badge>
+            </div>
 
-          {/* Server List */}
-          <div className="space-y-4">
-            {servers.map((server) => (
-              <Card key={server.id} className="bg-gray-900 border-gray-800">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2 flex-1">
-                      <h3 className="text-xl font-bold text-white">{server.name}</h3>
-                      <p className="text-gray-300">{server.description}</p>
-                      <div className="flex items-center gap-4 text-sm text-gray-400">
-                        <span>{server.memberCount.toLocaleString()} members</span>
-                        <span>Rep: {server.representative}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setEditingServer(editingServer === server.id ? null : server.id)}
-                        className="border-gray-600 text-gray-300 hover:bg-gray-800"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleRemoveServer(server.id)}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
+            {applications.length === 0 ? (
+              <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
+                <CardContent className="text-center py-12">
+                  <Shield className="w-16 h-16 mx-auto text-gray-600 mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-400 mb-2">No Pending Applications</h3>
+                  <p className="text-gray-500">All applications have been processed.</p>
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              <div className="grid gap-6">
+                {applications.map((app, index) => (
+                  <Card
+                    key={index}
+                    className="bg-gray-800/50 border-gray-700 backdrop-blur-sm hover:bg-gray-800/70 transition-all duration-300"
+                  >
+                    <CardHeader className="pb-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
+                            {app.logo ? (
+                              <img
+                                src={app.logo || "/placeholder.svg"}
+                                alt={app.name}
+                                className="w-12 h-12 rounded-lg object-cover"
+                              />
+                            ) : (
+                              <Crown className="w-8 h-8 text-white" />
+                            )}
+                          </div>
+                          <div>
+                            <CardTitle className="text-xl text-white">{app.name}</CardTitle>
+                            <p className="text-gray-400 mt-1">{app.description}</p>
+                          </div>
+                        </div>
+                        <Badge className="bg-yellow-600 hover:bg-yellow-700">PENDING REVIEW</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-red-400" />
+                          <span className="text-sm text-gray-300">Member Count</span>
+                          <span className="font-semibold text-white">{app.members.toLocaleString()}</span>
+                          <span className="text-xs text-gray-500">members</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <ExternalLink className="w-4 h-4 text-red-400" />
+                          <span className="text-sm text-gray-300">Server Access</span>
+                          <a
+                            href={app.invite}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-red-400 hover:text-red-300 text-sm font-medium underline"
+                          >
+                            Visit Server
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-red-400" />
+                          <span className="text-sm text-gray-300">Representative</span>
+                          <span className="font-mono text-sm text-white bg-gray-700 px-2 py-1 rounded">
+                            {app.representativeDiscordId || "Not provided"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <Button
+                          onClick={() => handleApprove(index)}
+                          disabled={loading}
+                          className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-2 px-4 text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-green-500/25"
+                        >
+                          <Check className="w-4 h-4 mr-2" />
+                          APPROVE & WELCOME
+                        </Button>
+                        <Button
+                          onClick={() => handleReject(index)}
+                          disabled={loading}
+                          variant="destructive"
+                          className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 py-2 px-4 text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-red-500/25"
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          DECLINE APPLICATION
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Announcements Tab */}
-      {activeTab === "announcements" && (
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-white">Announcements</h2>
+        {/* Servers Tab */}
+        {activeTab === "servers" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Alliance Servers</h2>
+              <Badge variant="outline" className="border-green-500 text-green-400">
+                {servers.length} Active
+              </Badge>
+            </div>
 
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-white">Create Announcement</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Textarea
-                value={announcement}
-                onChange={(e) => setAnnouncement(e.target.value)}
-                placeholder="Enter announcement content..."
-                className="bg-gray-800 border-gray-700 text-white"
-                rows={4}
-              />
-              <Button
-                onClick={handleSaveAnnouncement}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={!announcement.trim()}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Publish Announcement
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            {/* Add New Server Form */}
+            <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="w-5 h-5" />
+                  Add New Server
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddServer} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Server Name *</Label>
+                    <Input
+                      id="name"
+                      value={newServer.name}
+                      onChange={(e) => setNewServer({ ...newServer, name: e.target.value })}
+                      className="bg-gray-700 border-gray-600"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="members">Member Count *</Label>
+                    <Input
+                      id="members"
+                      type="number"
+                      value={newServer.members}
+                      onChange={(e) => setNewServer({ ...newServer, members: e.target.value })}
+                      className="bg-gray-700 border-gray-600"
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="description">Description *</Label>
+                    <Textarea
+                      id="description"
+                      value={newServer.description}
+                      onChange={(e) => setNewServer({ ...newServer, description: e.target.value })}
+                      className="bg-gray-700 border-gray-600"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="invite">Discord Invite *</Label>
+                    <Input
+                      id="invite"
+                      value={newServer.invite}
+                      onChange={(e) => setNewServer({ ...newServer, invite: e.target.value })}
+                      className="bg-gray-700 border-gray-600"
+                      placeholder="https://discord.gg/..."
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="logo">Logo URL</Label>
+                    <Input
+                      id="logo"
+                      value={newServer.logo}
+                      onChange={(e) => setNewServer({ ...newServer, logo: e.target.value })}
+                      className="bg-gray-700 border-gray-600"
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Button type="submit" disabled={loading} className="bg-red-600 hover:bg-red-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Server
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
 
-      {/* Settings Tab */}
-      {activeTab === "settings" && (
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-white">System Settings</h2>
-
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-white">General Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="maxServers" className="text-white">
-                  Maximum Servers
-                </Label>
-                <Input
-                  id="maxServers"
-                  type="number"
-                  value={settings.maxServers}
-                  onChange={(e) => setSettings({ ...settings, maxServers: Number.parseInt(e.target.value) || 0 })}
-                  className="bg-gray-800 border-gray-700 text-white"
-                />
+            {/* Servers List */}
+            {servers.length === 0 ? (
+              <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
+                <CardContent className="text-center py-12">
+                  <Users className="w-16 h-16 mx-auto text-gray-600 mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-400 mb-2">No Servers Yet</h3>
+                  <p className="text-gray-500">Add your first server to get started.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-6">
+                {servers.map((server, index) => (
+                  <Card key={index} className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center">
+                            {server.logo ? (
+                              <img
+                                src={server.logo || "/placeholder.svg"}
+                                alt={server.name}
+                                className="w-12 h-12 rounded-lg object-cover"
+                              />
+                            ) : (
+                              <Crown className="w-8 h-8 text-white" />
+                            )}
+                          </div>
+                          <div>
+                            <CardTitle className="text-xl text-white">{server.name}</CardTitle>
+                            <p className="text-gray-400 mt-1">{server.description}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-green-600 hover:bg-green-700">ACTIVE</Badge>
+                          {server.verified && (
+                            <Badge variant="outline" className="border-blue-500 text-blue-400">
+                              VERIFIED
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {editingServer === index && editServerData ? (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label>Server Name</Label>
+                              <Input
+                                value={editServerData.name}
+                                onChange={(e) => setEditServerData({ ...editServerData, name: e.target.value })}
+                                className="bg-gray-700 border-gray-600"
+                              />
+                            </div>
+                            <div>
+                              <Label>Member Count</Label>
+                              <Input
+                                type="number"
+                                value={editServerData.members}
+                                onChange={(e) =>
+                                  setEditServerData({
+                                    ...editServerData,
+                                    members: Number.parseInt(e.target.value) || 0,
+                                  })
+                                }
+                                className="bg-gray-700 border-gray-600"
+                              />
+                            </div>
+                            <div className="md:col-span-2">
+                              <Label>Description</Label>
+                              <Textarea
+                                value={editServerData.description}
+                                onChange={(e) => setEditServerData({ ...editServerData, description: e.target.value })}
+                                className="bg-gray-700 border-gray-600"
+                              />
+                            </div>
+                            <div>
+                              <Label>Discord Invite</Label>
+                              <Input
+                                value={editServerData.invite}
+                                onChange={(e) => setEditServerData({ ...editServerData, invite: e.target.value })}
+                                className="bg-gray-700 border-gray-600"
+                              />
+                            </div>
+                            <div>
+                              <Label>Logo URL</Label>
+                              <Input
+                                value={editServerData.logo || ""}
+                                onChange={(e) => setEditServerData({ ...editServerData, logo: e.target.value })}
+                                className="bg-gray-700 border-gray-600"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleUpdateServer(index)}
+                              disabled={loading}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <Save className="w-4 h-4 mr-2" />
+                              Save Changes
+                            </Button>
+                            <Button
+                              onClick={cancelEditServer}
+                              variant="outline"
+                              className="border-gray-600 bg-transparent"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-green-400" />
+                              <span className="text-sm text-gray-300">Members</span>
+                              <span className="font-semibold text-white">{server.members.toLocaleString()}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <ExternalLink className="w-4 h-4 text-green-400" />
+                              <a
+                                href={server.invite}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-green-400 hover:text-green-300 text-sm font-medium underline"
+                              >
+                                Visit Server
+                              </a>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-300">Added</span>
+                              <span className="text-sm text-white">
+                                {server.dateAdded ? new Date(server.dateAdded).toLocaleDateString() : "Unknown"}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => startEditServer(index, server)}
+                              variant="outline"
+                              size="sm"
+                              className="border-gray-600"
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit
+                            </Button>
+                            <Button
+                              onClick={() => handleRemoveServer(index)}
+                              variant="destructive"
+                              size="sm"
+                              disabled={loading}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
+            )}
+          </div>
+        )}
 
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="autoApproval"
-                  checked={settings.autoApproval}
-                  onChange={(e) => setSettings({ ...settings, autoApproval: e.target.checked })}
-                  className="rounded"
-                />
-                <Label htmlFor="autoApproval" className="text-white">
-                  Enable Auto-Approval
-                </Label>
-              </div>
+        {/* Settings Tab */}
+        {activeTab === "settings" && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">System Settings</h2>
 
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="maintenanceMode"
-                  checked={settings.maintenanceMode}
-                  onChange={(e) => setSettings({ ...settings, maintenanceMode: e.target.checked })}
-                  className="rounded"
-                />
-                <Label htmlFor="maintenanceMode" className="text-white">
-                  Maintenance Mode
-                </Label>
-                {settings.maintenanceMode && <AlertTriangle className="w-4 h-4 text-yellow-500 ml-2" />}
-              </div>
+            <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Configuration
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
+                    <div>
+                      <h3 className="font-semibold">Discord Webhook</h3>
+                      <p className="text-sm text-gray-400">Notifications for new applications</p>
+                    </div>
+                    <Badge className="bg-green-600">Active</Badge>
+                  </div>
 
-              <Button onClick={handleSaveSettings} className="bg-green-600 hover:bg-green-700 text-white">
-                <Save className="w-4 h-4 mr-2" />
-                Save Settings
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                  <div className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
+                    <div>
+                      <h3 className="font-semibold">Auto-approval</h3>
+                      <p className="text-sm text-gray-400">Automatically approve applications</p>
+                    </div>
+                    <Badge variant="outline" className="border-red-500 text-red-400">
+                      Disabled
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
+                    <div>
+                      <h3 className="font-semibold">Email Notifications</h3>
+                      <p className="text-sm text-gray-400">Send email alerts to admins</p>
+                    </div>
+                    <Badge variant="outline" className="border-yellow-500 text-yellow-400">
+                      Pending
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-yellow-400" />
+                  System Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-green-900/20 border border-green-700 rounded-lg">
+                    <div className="text-2xl font-bold text-green-400">{applications.length}</div>
+                    <div className="text-sm text-gray-400">Pending Applications</div>
+                  </div>
+                  <div className="text-center p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-400">{servers.length}</div>
+                    <div className="text-sm text-gray-400">Active Servers</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
 
       {/* Debug Panel */}
       <AdminDebugEnhanced applications={applications} servers={servers} activeTab={activeTab} />
