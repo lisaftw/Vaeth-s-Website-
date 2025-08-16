@@ -1,224 +1,156 @@
-// Manual stats management system with Discord API integration
-export interface ManualStats {
-  totalServers: number
-  totalMembers: number
-  securityScore: number
-  lastUpdated: string
-}
-
-// Default stats - these will be updated from Discord API
-let manualStats: ManualStats = {
+// Manual stats management for the Unified Realms alliance
+let manualStats = {
   totalServers: 1,
-  totalMembers: 250, // Updated default to match Discord
+  totalMembers: 250,
   securityScore: 100,
-  lastUpdated: new Date().toISOString(),
 }
 
-// Server member counts for individual management
-const serverMemberCounts: { [serverName: string]: number } = {
-  "Unified Realms HQ": 250, // Updated default
+const serverMemberCounts: { [key: string]: number } = {
+  "Unified Realms HQ": 250,
 }
 
-// Discord API integration for main server
-const MAIN_SERVER_INVITE = "https://discord.gg/yXTrkPPQAK"
-
-async function sendOptionalWebhook(payload: any): Promise<void> {
+// Optional webhook notification function
+async function sendOptionalWebhook(message: string) {
   try {
     const webhookUrl = process.env.DISCORD_WEBHOOK_URL
     if (!webhookUrl) {
-      console.log("No webhook URL configured, skipping notification")
+      console.warn("Discord webhook URL not configured, skipping notification")
       return
     }
 
-    console.log("Attempting to send webhook notification...")
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        content: message,
+        username: "Unified Realms Bot",
+        avatar_url: "https://cdn.discordapp.com/icons/1234567890/avatar.png",
+      }),
     })
 
     if (!response.ok) {
-      console.warn(`Webhook notification failed: ${response.status} ${response.statusText}`)
-      if (response.status === 404) {
-        console.warn("Webhook URL appears to be invalid or deleted. Continuing without notifications.")
-      }
+      console.warn(`Webhook notification failed: ${response.status}`)
     } else {
       console.log("Webhook notification sent successfully")
     }
   } catch (error) {
-    console.warn("Webhook notification failed (non-critical):", error)
+    console.warn("Webhook notification failed:", error)
   }
 }
 
+// Fetch main server member count from Discord API
 async function fetchMainServerMembers(): Promise<number> {
   try {
-    // Extract invite code from URL
-    const inviteCode = MAIN_SERVER_INVITE.split("/").pop()
-    if (!inviteCode) {
-      console.error("Could not extract invite code from URL")
+    const guildId = "1234567890" // Unified Realms HQ guild ID
+    const botToken = process.env.DISCORD_BOT_TOKEN
+
+    if (!botToken) {
+      console.warn("Discord bot token not configured, using fallback count")
       return 250
     }
 
-    console.log("Fetching Discord server info for invite code:", inviteCode)
-
-    const response = await fetch(`https://discord.com/api/v10/invites/${inviteCode}?with_counts=true`, {
+    const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}`, {
       headers: {
-        "User-Agent": "UnifiedRealms/1.0",
-        Accept: "application/json",
+        Authorization: `Bot ${botToken}`,
       },
     })
 
     if (!response.ok) {
-      console.error("Discord API error:", response.status, response.statusText)
-      const errorText = await response.text()
-      console.error("Discord API error details:", errorText)
+      console.warn(`Discord API error: ${response.status}`)
       return 250
     }
 
-    const data = await response.json()
-    console.log("Discord API response:", data)
-
-    const memberCount = data.guild?.approximate_member_count || data.approximate_member_count || 250
-    console.log("Extracted member count:", memberCount)
-
-    // Send optional webhook notification about the successful update
-    const webhookPayload = {
-      embeds: [
-        {
-          title: "🔄 Unified Realms HQ Member Count Updated",
-          description: `Successfully fetched latest member count from Discord API.`,
-          fields: [
-            {
-              name: "📊 New Member Count",
-              value: memberCount.toLocaleString(),
-              inline: true,
-            },
-            {
-              name: "🕒 Last Updated",
-              value: new Date().toLocaleString(),
-              inline: true,
-            },
-            {
-              name: "🔗 Server",
-              value: "Unified Realms HQ",
-              inline: true,
-            },
-          ],
-          color: 0x00ff00,
-          timestamp: new Date().toISOString(),
-          footer: {
-            text: "Unified Realms Alliance Bot",
-          },
-        },
-      ],
-    }
-
-    // Send webhook notification (non-blocking)
-    sendOptionalWebhook(webhookPayload)
-
-    return memberCount
+    const guild = await response.json()
+    return guild.member_count || 250
   } catch (error) {
-    console.error("Error fetching main server members:", error)
-    return 250 // Fallback to known value
+    console.warn("Failed to fetch Discord member count:", error)
+    return 250
   }
 }
 
-export function getManualStats(): ManualStats {
+// Refresh main server data from Discord
+export async function refreshMainServerData(): Promise<{ success: boolean; message: string; error?: string }> {
+  try {
+    console.log("Refreshing main server data from Discord...")
+    const memberCount = await fetchMainServerMembers()
+
+    // Update the main server count
+    serverMemberCounts["Unified Realms HQ"] = memberCount
+
+    // Recalculate total members
+    const totalMembers = calculateTotalMembersFromServers()
+    manualStats.totalMembers = totalMembers
+
+    console.log(`Updated Unified Realms HQ: ${memberCount} members`)
+    console.log(`Total alliance members: ${totalMembers}`)
+
+    // Send optional webhook notification
+    await sendOptionalWebhook(
+      `📊 **Stats Updated**\n` +
+        `🏰 Unified Realms HQ: **${memberCount.toLocaleString()}** members\n` +
+        `👥 Total Alliance: **${totalMembers.toLocaleString()}** members`,
+    )
+
+    return {
+      success: true,
+      message: `Successfully updated main server data. Current count: ${memberCount.toLocaleString()} members`,
+    }
+  } catch (error) {
+    console.error("Error refreshing main server data:", error)
+    return {
+      success: false,
+      message: "Failed to refresh main server data",
+      error: String(error),
+    }
+  }
+}
+
+// Get current manual stats
+export function getManualStats() {
   return { ...manualStats }
 }
 
-export function updateManualStats(newStats: Partial<ManualStats>): void {
-  manualStats = {
-    ...manualStats,
-    ...newStats,
-    lastUpdated: new Date().toISOString(),
-  }
+// Update manual stats
+export function updateManualStats(newStats: Partial<typeof manualStats>) {
+  manualStats = { ...manualStats, ...newStats }
   console.log("Manual stats updated:", manualStats)
 }
 
-export function getServerMemberCounts(): { [serverName: string]: number } {
+// Get server member counts
+export function getServerMemberCounts() {
   return { ...serverMemberCounts }
 }
 
-export function updateServerMemberCount(serverName: string, memberCount: number): void {
-  const oldCount = serverMemberCounts[serverName] || 0
+// Update individual server member count
+export function updateServerMemberCount(serverName: string, memberCount: number) {
   serverMemberCounts[serverName] = memberCount
-  console.log(`Updated ${serverName} member count from ${oldCount} to ${memberCount}`)
-
-  // Auto-update total members
-  const newTotal = calculateTotalMembersFromServers()
-  updateManualStats({ totalMembers: newTotal })
-
-  console.log(`Total members updated to: ${newTotal}`)
+  // Recalculate total members
+  const totalMembers = calculateTotalMembersFromServers()
+  manualStats.totalMembers = totalMembers
+  console.log(`Updated ${serverName}: ${memberCount} members, Total: ${totalMembers}`)
 }
 
-export function calculateTotalMembersFromServers(): number {
-  const total = Object.values(serverMemberCounts).reduce((sum, count) => sum + count, 0)
-  console.log("Calculated total members from servers:", total, "from counts:", serverMemberCounts)
-  return total
-}
-
-export function addServerToMemberCounts(serverName: string, memberCount: number): void {
+// Add server to member counts tracking
+export function addServerToMemberCounts(serverName: string, memberCount: number) {
   serverMemberCounts[serverName] = memberCount
-  console.log(`Added server ${serverName} with ${memberCount} members`)
-
-  // Auto-update total members and server count
-  const newTotal = calculateTotalMembersFromServers()
-  const newServerCount = Object.keys(serverMemberCounts).length
-  updateManualStats({
-    totalMembers: newTotal,
-    totalServers: newServerCount,
-  })
-
-  console.log(`Updated totals - Servers: ${newServerCount}, Members: ${newTotal}`)
+  // Recalculate total members
+  const totalMembers = calculateTotalMembersFromServers()
+  manualStats.totalMembers = totalMembers
+  console.log(`Added ${serverName} with ${memberCount} members to tracking`)
 }
 
-export function removeServerFromMemberCounts(serverName: string): void {
-  const removedCount = serverMemberCounts[serverName] || 0
+// Remove server from member counts tracking
+export function removeServerFromMemberCounts(serverName: string) {
   delete serverMemberCounts[serverName]
-  console.log(`Removed server ${serverName} with ${removedCount} members`)
-
-  // Auto-update total members and server count
-  const newTotal = calculateTotalMembersFromServers()
-  const newServerCount = Object.keys(serverMemberCounts).length
-  updateManualStats({
-    totalMembers: newTotal,
-    totalServers: newServerCount,
-  })
-
-  console.log(`Updated totals after removal - Servers: ${newServerCount}, Members: ${newTotal}`)
+  // Recalculate total members
+  const totalMembers = calculateTotalMembersFromServers()
+  manualStats.totalMembers = totalMembers
+  console.log(`Removed ${serverName} from tracking`)
 }
 
-export async function refreshMainServerData(): Promise<void> {
-  try {
-    console.log("Starting main server data refresh...")
-    const memberCount = await fetchMainServerMembers()
-    console.log("Fetched member count:", memberCount)
-
-    updateServerMemberCount("Unified Realms HQ", memberCount)
-    console.log("Main server data refresh completed with member count:", memberCount)
-  } catch (error) {
-    console.error("Error refreshing main server data:", error)
-  }
+// Calculate total members from all tracked servers
+export function calculateTotalMembersFromServers(): number {
+  return Object.values(serverMemberCounts).reduce((total, count) => total + count, 0)
 }
-
-// Initialize with Discord data on startup
-console.log("Initializing manual stats system...")
-refreshMainServerData()
-  .then(() => {
-    console.log("Initial Discord data fetch completed")
-  })
-  .catch((error) => {
-    console.error("Initial Discord data fetch failed:", error)
-  })
-
-// Auto-refresh main server data every 10 minutes
-setInterval(
-  () => {
-    console.log("Auto-refreshing main server data...")
-    refreshMainServerData()
-  },
-  10 * 60 * 1000,
-)
