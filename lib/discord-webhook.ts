@@ -4,6 +4,7 @@ export interface WebhookData {
   memberCount: number
   serverUrl: string
   representative: string
+  ownerName: string
   logoUrl?: string
 }
 
@@ -28,12 +29,17 @@ export async function sendDiscordWebhook(data: WebhookData): Promise<boolean> {
           inline: true,
         },
         {
-          name: "🔗 Server Link",
+          name: "🔗 Discord Invite",
           value: data.serverUrl ? `[Join Server](${data.serverUrl})` : "No link provided",
           inline: true,
         },
         {
-          name: "👤 Representative",
+          name: "👤 Server Owner",
+          value: data.ownerName || "Not specified",
+          inline: true,
+        },
+        {
+          name: "📞 Representative",
           value: data.representative || "Not specified",
           inline: true,
         },
@@ -54,6 +60,8 @@ export async function sendDiscordWebhook(data: WebhookData): Promise<boolean> {
       embeds: [embed],
     }
 
+    console.log("Sending Discord webhook with payload:", JSON.stringify(payload, null, 2))
+
     const response = await fetch(WEBHOOK_URL, {
       method: "POST",
       headers: {
@@ -63,7 +71,8 @@ export async function sendDiscordWebhook(data: WebhookData): Promise<boolean> {
     })
 
     if (!response.ok) {
-      console.error("Discord webhook failed:", response.status, response.statusText)
+      const errorText = await response.text()
+      console.error("Discord webhook failed:", response.status, response.statusText, errorText)
       return false
     }
 
@@ -90,6 +99,7 @@ export async function sendDiscordNotification(application: {
     memberCount: application.members,
     serverUrl: application.invite,
     representative: application.representativeDiscordId || "Not specified",
+    ownerName: "Not specified",
     logoUrl: application.logo,
   })
 }

@@ -112,29 +112,37 @@ export default function AdminContent() {
 
   const loadData = () => {
     try {
+      console.log("Loading admin data...")
       const appsData = getApplicationsData()
       const serversData = getServersData()
+
+      console.log("Loaded applications:", appsData)
+      console.log("Loaded servers:", serversData)
 
       setApplications(appsData)
       setServers(serversData)
 
-      console.log("Loaded data:", { applications: appsData.length, servers: serversData.length })
+      console.log("Data loaded successfully:", { applications: appsData.length, servers: serversData.length })
     } catch (error) {
       console.error("Error loading data:", error)
+      setError("Failed to load data: " + String(error))
     }
   }
 
   const handleApprove = async (index: number) => {
     setLoading(true)
     try {
+      console.log("Approving application at index:", index)
       const formData = new FormData()
       formData.append("index", index.toString())
       const result = await approveApplication(formData)
 
       if (result.success) {
+        console.log("Application approved successfully")
         loadData() // Refresh data
         alert(result.message)
       } else {
+        console.error("Failed to approve application:", result.error)
         alert(result.error)
       }
     } catch (error) {
@@ -150,14 +158,17 @@ export default function AdminContent() {
 
     setLoading(true)
     try {
+      console.log("Rejecting application at index:", index)
       const formData = new FormData()
       formData.append("index", index.toString())
       const result = await rejectApplication(formData)
 
       if (result.success) {
+        console.log("Application rejected successfully")
         loadData() // Refresh data
         alert(result.message)
       } else {
+        console.error("Failed to reject application:", result.error)
         alert(result.error)
       }
     } catch (error) {
@@ -347,6 +358,18 @@ export default function AdminContent() {
       setError("Tab change failed: " + String(err))
     }
   }
+
+  // Auto-refresh data every 10 seconds when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const interval = setInterval(() => {
+        console.log("Auto-refreshing admin data...")
+        loadData()
+      }, 10000)
+
+      return () => clearInterval(interval)
+    }
+  }, [isAuthenticated])
 
   // Don't render until mounted
   if (!mounted) {
@@ -598,6 +621,12 @@ export default function AdminContent() {
                   <p className="text-gray-400 text-base md:text-lg mb-6 md:mb-8 max-w-md mx-auto">
                     No pending applications at the moment. The alliance is ready for new members.
                   </p>
+                  <Button
+                    onClick={loadData}
+                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+                  >
+                    Refresh Data
+                  </Button>
                 </CardContent>
               </Card>
             ) : (
@@ -1238,6 +1267,7 @@ export default function AdminContent() {
               <div>✅ Loading State: {loading ? "ACTIVE" : "IDLE"}</div>
               <div>✅ Error State: {error || "none"}</div>
               <div>✅ Discord Webhook: CONFIGURED</div>
+              <div>✅ Auto-refresh: ENABLED (10s)</div>
             </CardContent>
           </Card>
         )}

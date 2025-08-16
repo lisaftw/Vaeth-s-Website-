@@ -1,223 +1,187 @@
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, Crown, MessageSquare, ArrowLeft, Clock, Users, Shield } from 'lucide-react'
-import Link from "next/link"
+import { Button } from "@/components/ui/button"
 import { ModernLogo } from "@/components/modern-logo"
+import Link from "next/link"
+import { CheckCircle, Clock, MessageSquare, Home, ExternalLink } from "lucide-react"
 
 export default function ConfirmationPage() {
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-red-950/20 via-black to-red-950/10"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(220,38,38,0.15),transparent_50%)]"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(220,38,38,0.1),transparent_50%)]"></div>
-
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900">
       {/* Header */}
-      <header className="border-b border-red-900/30 bg-black/95 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b border-red-500/20 bg-black/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+          <div className="flex items-center justify-center">
+            <div className="flex items-center space-x-3">
               <ModernLogo size="sm" />
               <div>
-                <span className="text-xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
+                <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
                   Unified Realms
                 </span>
-                <div className="text-xs text-red-400/70 font-medium tracking-wider">ALLIANCE</div>
+                <div className="text-xs text-red-400/70 font-medium tracking-wider animate-pulse">ALLIANCE</div>
               </div>
-            </Link>
-            <Button
-              asChild
-              variant="outline"
-              className="border-red-500/50 text-red-400 hover:bg-red-950/50 bg-transparent"
-            >
-              <Link href="/">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
-              </Link>
-            </Button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-16 relative z-10">
-        <div className="max-w-4xl mx-auto">
-          {/* Success Header */}
+      <main className="container mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto">
+          {/* Success Animation */}
           <div className="text-center mb-12">
-            <div className="mb-8">
-              <div className="w-24 h-24 bg-gradient-to-br from-green-500 to-green-600 rounded-full mx-auto mb-6 flex items-center justify-center shadow-2xl shadow-green-900/50 animate-pulse">
-                <CheckCircle className="w-12 h-12 text-white" />
-              </div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                <span className="bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent">
-                  Application Submitted!
-                </span>
-              </h1>
-              <div className="w-16 h-1 bg-gradient-to-r from-green-600 to-green-400 mx-auto mb-6"></div>
-              <p className="text-gray-300 text-lg max-w-2xl mx-auto leading-relaxed">
-                Thank you for your interest in joining the{" "}
-                <span className="text-red-400 font-semibold">Unified Realms Alliance</span>. Your application has been
-                successfully received and is now under review.
-              </p>
+            <div className="mb-6">
+              <ModernLogo size="lg" animated={true} className="mx-auto" />
             </div>
+            <div className="mb-6">
+              <CheckCircle className="w-20 h-20 text-green-500 mx-auto animate-pulse" />
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-green-400 via-green-500 to-green-600 bg-clip-text text-transparent">
+                Application Submitted!
+              </span>
+            </h1>
+            <p className="text-xl text-gray-300 mb-8">
+              Thank you for applying to join the Unified Realms Alliance. Your application has been received and is now
+              under review.
+            </p>
           </div>
 
           {/* Review Timeline */}
-          <Card className="mb-8 bg-gradient-to-br from-gray-900 to-black border-red-900/30 shadow-2xl shadow-red-900/20">
+          <Card className="bg-black/40 border-red-500/30 backdrop-blur-sm mb-8">
             <CardHeader>
-              <CardTitle className="text-2xl font-bold text-red-400 flex items-center">
-                <Clock className="w-6 h-6 mr-3" />
-                Review Timeline
+              <CardTitle className="text-2xl text-red-400 flex items-center gap-2">
+                <Clock className="w-6 h-6" />
+                Review Process
               </CardTitle>
               <CardDescription className="text-gray-400">
                 Here's what happens next with your application
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                <div className="flex items-start space-x-4">
-                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                    <CheckCircle className="w-5 h-5 text-white" />
-                  </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                  <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold text-green-400 mb-1">Application Received</h3>
-                    <p className="text-gray-400 text-sm">
-                      Your application has been successfully submitted and logged in our system.
-                    </p>
+                    <h3 className="font-semibold text-green-400">Application Received</h3>
+                    <p className="text-sm text-gray-400">Your application has been successfully submitted</p>
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-4">
-                  <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse">
-                    <Clock className="w-5 h-5 text-white" />
-                  </div>
+                <div className="flex items-center gap-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <Clock className="w-6 h-6 text-yellow-500 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold text-yellow-400 mb-1">Under Review</h3>
-                    <p className="text-gray-400 text-sm">
-                      Our alliance council is currently reviewing your server and application details.
-                    </p>
+                    <h3 className="font-semibold text-yellow-400">Under Review</h3>
+                    <p className="text-sm text-gray-400">Our team is currently reviewing your application</p>
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-4">
-                  <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <MessageSquare className="w-5 h-5 text-white" />
-                  </div>
+                <div className="flex items-center gap-4 p-4 bg-gray-500/10 border border-gray-500/30 rounded-lg">
+                  <MessageSquare className="w-6 h-6 text-gray-500 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold text-gray-400 mb-1">Direct Contact</h3>
-                    <p className="text-gray-400 text-sm">
-                      We'll reach out to your server representative via Discord within 24-48 hours.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Crown className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-400 mb-1">Alliance Invitation</h3>
-                    <p className="text-gray-400 text-sm">
-                      Approved servers will receive an official invitation to join our alliance network.
-                    </p>
+                    <h3 className="font-semibold text-gray-400">Decision Notification</h3>
+                    <p className="text-sm text-gray-400">You'll be contacted via Discord with our decision</p>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* What Happens Next */}
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
-            <Card className="bg-gradient-to-br from-gray-900 to-black border-red-900/30 hover:border-red-700/50 transition-all duration-300">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-red-400 flex items-center">
-                  <Users className="w-5 h-5 mr-2" />
-                  Review Process
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 text-gray-300">
-                  <li className="flex items-start">
-                    <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                    <span className="text-sm">Server quality and community standards assessment</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                    <span className="text-sm">Alignment with alliance values and goals</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                    <span className="text-sm">Member engagement and activity evaluation</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                    <span className="text-sm">Partnership potential and mutual benefits</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
+          {/* What's Next */}
+          <Card className="bg-black/40 border-red-500/30 backdrop-blur-sm mb-8">
+            <CardHeader>
+              <CardTitle className="text-xl text-red-400">What Happens Next?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 text-gray-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
+                    1
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-red-400">Review Period</h4>
+                    <p className="text-sm">Our team will review your application within 3-5 business days.</p>
+                  </div>
+                </div>
 
-            <Card className="bg-gradient-to-br from-gray-900 to-black border-red-900/30 hover:border-red-700/50 transition-all duration-300">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-red-400 flex items-center">
-                  <Shield className="w-5 h-5 mr-2" />
-                  Important Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 text-gray-300">
-                  <li className="flex items-start">
-                    <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                    <span className="text-sm">Keep your Discord server invite link active</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                    <span className="text-sm">Ensure your representative is available for contact</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                    <span className="text-sm">Review our terms of service and alliance guidelines</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                    <span className="text-sm">Join our main Discord for updates and announcements</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
+                    2
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-red-400">Discord Contact</h4>
+                    <p className="text-sm">
+                      We'll reach out to your representative via Discord for any questions or updates.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
+                    3
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-red-400">Final Decision</h4>
+                    <p className="text-sm">You'll receive a final decision and next steps if approved.</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Important Information */}
+          <Card className="bg-black/40 border-yellow-500/30 backdrop-blur-sm mb-8">
+            <CardHeader>
+              <CardTitle className="text-xl text-yellow-400">Important Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 text-gray-300">
+                <p className="flex items-start gap-2">
+                  <span className="text-yellow-400 mt-1">•</span>
+                  <span>Make sure your Discord server invite link is permanent and doesn't expire</span>
+                </p>
+                <p className="flex items-start gap-2">
+                  <span className="text-yellow-400 mt-1">•</span>
+                  <span>Keep your representative Discord account active for communication</span>
+                </p>
+                <p className="flex items-start gap-2">
+                  <span className="text-yellow-400 mt-1">•</span>
+                  <span>
+                    Applications are reviewed based on server activity, community guidelines, and alignment with our
+                    values
+                  </span>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              asChild
-              size="lg"
-              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-0 rounded-xl px-8 py-3 text-lg font-semibold shadow-2xl shadow-red-900/50 transition-all duration-300 hover:scale-105"
-            >
-              <Link href="/">
-                <Crown className="w-5 h-5 mr-2" />
-                Return to Home
+            <Button asChild className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700">
+              <Link href="/" className="flex items-center gap-2">
+                <Home className="w-4 h-4" />
+                Return Home
               </Link>
             </Button>
+
             <Button
               asChild
               variant="outline"
-              size="lg"
-              className="border-2 border-red-500/50 text-red-400 hover:bg-red-950/50 hover:border-red-400 rounded-xl px-8 py-3 text-lg font-semibold backdrop-blur-sm transition-all duration-300 hover:scale-105 bg-transparent"
+              className="border-red-500/30 text-red-400 hover:bg-red-500/10 bg-transparent"
             >
-              <a href="https://discord.gg/yXTrkPPQAK" target="_blank" rel="noopener noreferrer">
-                <MessageSquare className="w-5 h-5 mr-2" />
-                Join Main Discord
-              </a>
+              <Link href="https://discord.gg/unifiedrealms" target="_blank" className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Join Our Discord
+                <ExternalLink className="w-3 h-3" />
+              </Link>
             </Button>
+
             <Button
               asChild
               variant="outline"
-              size="lg"
-              className="border-2 border-gray-500/50 text-gray-400 hover:bg-gray-950/50 hover:border-gray-400 rounded-xl px-8 py-3 text-lg font-semibold backdrop-blur-sm transition-all duration-300 hover:scale-105 bg-transparent"
+              className="border-red-500/30 text-red-400 hover:bg-red-500/10 bg-transparent"
             >
-              <Link href="/terms">
-                <Shield className="w-5 h-5 mr-2" />
+              <Link href="/terms" className="flex items-center gap-2">
+                <ExternalLink className="w-4 h-4" />
                 Review Terms
               </Link>
             </Button>

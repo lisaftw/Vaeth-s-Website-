@@ -1,45 +1,73 @@
-'use server'
+"use server"
 
-import { redirect } from 'next/navigation'
-import { sendDiscordWebhook } from '@/lib/discord-webhook'
+import { addApplication } from "@/lib/data-store"
+import { sendDiscordWebhook } from "@/lib/discord-webhook"
+import { redirect } from "next/navigation"
 
 export async function submitApplication(formData: FormData) {
   try {
-    const serverName = formData.get('serverName') as string
-    const serverInvite = formData.get('serverInvite') as string
-    const memberCount = formData.get('memberCount') as string
-    const ownerName = formData.get('ownerName') as string
-    const representativeDiscordId = formData.get('representativeDiscordId') as string
-    const description = formData.get('description') as string
+    console.log("Submit application action called")
+
+    // Extract form data
+    const serverName = formData.get("serverName") as string
+    const description = formData.get("description") as string
+    const members = formData.get("members") as string
+    const discordInvite = formData.get("discordInvite") as string
+    const ownerName = formData.get("ownerName") as string
+    const representativeId = formData.get("representativeId") as string
+
+    console.log("Form data extracted:", {
+      serverName,
+      description,
+      members,
+      discordInvite,
+      ownerName,
+      representativeId,
+    })
 
     // Validate required fields
-    if (!serverName || !serverInvite || !memberCount || !ownerName || !representativeDiscordId || !description) {
-      throw new Error('All fields are required')
+    if (!serverName || !description || !members || !discordInvite || !ownerName) {
+      console.error("Missing required fields")
+      throw new Error("All required fields must be filled")
     }
 
-    // Send Discord webhook notification
-    await sendDiscordWebhook({
-      serverName,
-      serverInvite,
-      memberCount: parseInt(memberCount),
-      ownerName,
-      representativeDiscordId,
-      description
-    })
+    // Create application object
+    const application = {
+      name: serverName,
+      description: description,
+      members: Number.parseInt(members) || 0,
+      invite: discordInvite,
+      representativeDiscordId: representativeId || ownerName,
+    }
 
-    console.log('Application submitted:', {
-      serverName,
-      serverInvite,
-      memberCount,
-      ownerName,
-      representativeDiscordId,
-      description
-    })
+    console.log("Application object created:", application)
 
+    // Add to data store
+    addApplication(application)
+    console.log("Application added to data store")
+
+    // Send Discord webhook
+    try {
+      await sendDiscordWebhook({
+        serverName,
+        description,
+        members: Number.parseInt(members) || 0,
+        discordInvite,
+        ownerName,
+        representativeId: representativeId || ownerName,
+      })
+      console.log("Discord webhook sent successfully")
+    } catch (webhookError) {
+      console.error("Discord webhook failed:", webhookError)
+      // Don't fail the entire submission if webhook fails
+    }
+
+    console.log("Redirecting to confirmation page")
   } catch (error) {
-    console.error('Error submitting application:', error)
+    console.error("Error in submit application:", error)
     throw error
   }
 
-  redirect('/confirmation')
+  // Redirect to confirmation page
+  redirect("/confirmation")
 }

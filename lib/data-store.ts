@@ -22,44 +22,62 @@ export interface Server {
   representativeDiscordId?: string
 }
 
-// Empty arrays - no mock data
+// Initialize with empty arrays
 const applications: Application[] = []
 const servers: Server[] = []
 
 // Data access functions
 export function getApplicationsData(): Application[] {
+  console.log("Getting applications data, current count:", applications.length)
+  console.log("Applications:", applications)
   return [...applications] // Return a copy
 }
 
 export function getServersData(): Server[] {
+  console.log("Getting servers data, current count:", servers.length)
   return [...servers] // Return a copy
 }
 
 export function addApplication(application: Application): void {
+  console.log("Adding application to data store:", application)
   applications.push(application)
+  console.log("Applications array after adding:", applications)
+  console.log("Total applications now:", applications.length)
 }
 
 export function removeApplication(index: number): Application | null {
+  console.log("Removing application at index:", index)
   if (index >= 0 && index < applications.length) {
-    return applications.splice(index, 1)[0]
+    const removed = applications.splice(index, 1)[0]
+    console.log("Removed application:", removed)
+    return removed
   }
+  console.log("Invalid index for removal:", index)
   return null
 }
 
 export function addServer(server: Server): void {
+  console.log("Adding server to data store:", server)
   servers.push(server)
+  console.log("Total servers now:", servers.length)
 }
 
 export function removeServer(index: number): Server | null {
+  console.log("Removing server at index:", index)
   if (index >= 0 && index < servers.length) {
-    return servers.splice(index, 1)[0]
+    const removed = servers.splice(index, 1)[0]
+    console.log("Removed server:", removed)
+    return removed
   }
+  console.log("Invalid index for removal:", index)
   return null
 }
 
 export function approveApplicationToServer(applicationIndex: number): boolean {
+  console.log("Approving application at index:", applicationIndex)
   if (applicationIndex >= 0 && applicationIndex < applications.length) {
     const application = applications[applicationIndex]
+    console.log("Application to approve:", application)
 
     // Convert application to server
     const newServer: Server = {
@@ -78,7 +96,13 @@ export function approveApplicationToServer(applicationIndex: number): boolean {
     servers.push(newServer)
     applications.splice(applicationIndex, 1)
 
+    console.log("Application approved and moved to servers")
+    console.log("New server:", newServer)
+    console.log("Remaining applications:", applications.length)
+    console.log("Total servers:", servers.length)
+
     return true
   }
+  console.log("Invalid application index for approval:", applicationIndex)
   return false
 }
