@@ -1,5 +1,6 @@
 "use server"
 
+import { redirect } from "next/navigation"
 import { addApplication } from "@/lib/data-store"
 import { sendDiscordNotification } from "@/lib/discord-webhook"
 
@@ -9,17 +10,21 @@ export async function submitApplication(formData: FormData) {
       name: formData.get("serverName") as string,
       description: formData.get("description") as string,
       members: Number.parseInt(formData.get("memberCount") as string) || 0,
-      invite: formData.get("serverUrl") as string,
-      logo: formData.get("logoUrl") as string,
-      representativeDiscordId: formData.get("representative") as string,
+      invite: formData.get("serverInvite") as string,
+      ownerName: formData.get("ownerName") as string,
+      representativeDiscordId: formData.get("representativeDiscordId") as string,
     }
 
     // Validate required fields
-    if (!applicationData.name || !applicationData.description || !applicationData.members || !applicationData.invite) {
-      return {
-        success: false,
-        error: "Please fill in all required fields",
-      }
+    if (
+      !applicationData.name ||
+      !applicationData.description ||
+      !applicationData.members ||
+      !applicationData.invite ||
+      !applicationData.ownerName ||
+      !applicationData.representativeDiscordId
+    ) {
+      throw new Error("Please fill in all required fields")
     }
 
     // Add to data store
@@ -32,23 +37,20 @@ export async function submitApplication(formData: FormData) {
         description: applicationData.description,
         members: applicationData.members,
         invite: applicationData.invite,
-        logo: applicationData.logo || undefined,
         representativeDiscordId: applicationData.representativeDiscordId,
       })
+      console.log("Discord notification sent successfully for:", applicationData.name)
     } catch (webhookError) {
       console.error("Discord webhook failed:", webhookError)
       // Don't fail the application submission if webhook fails
     }
 
-    return {
-      success: true,
-      message: "Application submitted successfully! You will be notified of the decision.",
-    }
+    // Redirect to confirmation page with server details
+    redirect(
+      `/confirmation?server=${encodeURIComponent(applicationData.name)}&members=${applicationData.members}&owner=${encodeURIComponent(applicationData.ownerName)}`,
+    )
   } catch (error) {
     console.error("Error submitting application:", error)
-    return {
-      success: false,
-      error: "Failed to submit application. Please try again.",
-    }
+    throw new Error("Failed to submit application. Please try again.")
   }
 }

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Clock, Shield, ArrowLeft, Home, MessageSquare } from "lucide-react"
+import { CheckCircle, Clock, Shield, ArrowLeft, Home, MessageSquare, Users } from "lucide-react"
 import Link from "next/link"
 import { ModernLogo } from "@/components/modern-logo"
 import { FloatingBackButton } from "@/components/floating-back-button"
@@ -9,11 +9,15 @@ import { FloatingBackButton } from "@/components/floating-back-button"
 interface ConfirmationPageProps {
   searchParams: {
     server?: string
+    members?: string
+    owner?: string
   }
 }
 
 export default function ConfirmationPage({ searchParams }: ConfirmationPageProps) {
-  const serverName = searchParams.server || "Your Server"
+  const serverName = searchParams.server ? decodeURIComponent(searchParams.server) : "Your Server"
+  const memberCount = searchParams.members ? Number.parseInt(searchParams.members) : 0
+  const ownerName = searchParams.owner ? decodeURIComponent(searchParams.owner) : "Server Owner"
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -74,11 +78,23 @@ export default function ConfirmationPage({ searchParams }: ConfirmationPageProps
             <CardHeader className="text-center pb-6">
               <div className="flex items-center justify-center space-x-3 mb-4">
                 <Shield className="w-8 h-8 text-green-500" />
-                <CardTitle className="text-3xl font-bold text-green-400">{decodeURIComponent(serverName)}</CardTitle>
+                <CardTitle className="text-3xl font-bold text-green-400">{serverName}</CardTitle>
               </div>
               <CardDescription className="text-gray-300 text-lg">
                 Your application has been successfully submitted to the Unified Realms Alliance
               </CardDescription>
+              {memberCount > 0 && (
+                <div className="flex items-center justify-center space-x-2 mt-4">
+                  <Users className="w-5 h-5 text-blue-400" />
+                  <span className="text-blue-300 font-semibold">{memberCount.toLocaleString()} Members</span>
+                </div>
+              )}
+              {ownerName && ownerName !== "Server Owner" && (
+                <div className="text-purple-300 mt-2">
+                  <span className="font-medium">Owner: </span>
+                  <span className="text-purple-400">{ownerName}</span>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-8">
               {/* Status Badge */}
