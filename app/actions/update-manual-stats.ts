@@ -5,8 +5,9 @@ import { updateManualStats, updateServerMemberCount, refreshMainServerData, getM
 const DISCORD_WEBHOOK_URL =
   "https://discord.com/api/webhooks/1405214127168688139/mwiG9IpefUfBvEEVqVKXN3tMdjEiWimkNvIUX8Xex0rcpAqWyERrecN8C9AQ-7v1L1Ew"
 
-async function sendDiscordWebhook(embed: any) {
+async function sendOptionalDiscordWebhook(embed: any): Promise<void> {
   try {
+    console.log("Attempting to send Discord webhook...")
     const response = await fetch(DISCORD_WEBHOOK_URL, {
       method: "POST",
       headers: {
@@ -18,10 +19,15 @@ async function sendDiscordWebhook(embed: any) {
     })
 
     if (!response.ok) {
-      console.error("Discord webhook failed:", response.status)
+      console.warn(`Discord webhook failed: ${response.status} ${response.statusText}`)
+      if (response.status === 404) {
+        console.warn("Discord webhook URL appears to be invalid or deleted. Continuing without notifications.")
+      }
+    } else {
+      console.log("Discord webhook sent successfully")
     }
   } catch (error) {
-    console.error("Error sending Discord webhook:", error)
+    console.warn("Discord webhook failed (non-critical):", error)
   }
 }
 
@@ -39,8 +45,8 @@ export async function updateManualStatsAction(formData: FormData) {
       securityScore,
     })
 
-    // Send webhook notification
-    await sendDiscordWebhook({
+    // Send optional webhook notification
+    await sendOptionalDiscordWebhook({
       title: "📊 Alliance Stats Manually Updated",
       description: `Alliance statistics have been manually updated by an administrator.`,
       fields: [
@@ -74,8 +80,8 @@ export async function updateServerMemberCountAction(formData: FormData) {
 
     updateServerMemberCount(serverName, memberCount)
 
-    // Send webhook notification
-    await sendDiscordWebhook({
+    // Send optional webhook notification
+    await sendOptionalDiscordWebhook({
       title: "🔄 Server Member Count Updated",
       description: `Member count for **${serverName}** has been manually updated.`,
       fields: [
@@ -107,8 +113,8 @@ export async function refreshMainServerAction() {
     const stats = getManualStats()
     console.log("Refresh completed, current stats:", stats)
 
-    // Send webhook notification
-    await sendDiscordWebhook({
+    // Send optional webhook notification
+    await sendOptionalDiscordWebhook({
       title: "🔄 Discord Data Refreshed",
       description: `Unified Realms HQ member count has been refreshed from Discord API.`,
       fields: [

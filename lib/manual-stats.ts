@@ -24,6 +24,30 @@ const MAIN_SERVER_INVITE = "https://discord.gg/yXTrkPPQAK"
 const DISCORD_WEBHOOK_URL =
   "https://discord.com/api/webhooks/1405214127168688139/mwiG9IpefUfBvEEVqVKXN3tMdjEiWimkNvIUX8Xex0rcpAqWyERrecN8C9AQ-7v1L1Ew"
 
+async function sendOptionalWebhook(payload: any): Promise<void> {
+  try {
+    console.log("Attempting to send webhook notification...")
+    const response = await fetch(DISCORD_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      console.warn(`Webhook notification failed: ${response.status} ${response.statusText}`)
+      if (response.status === 404) {
+        console.warn("Webhook URL appears to be invalid or deleted. Continuing without notifications.")
+      }
+    } else {
+      console.log("Webhook notification sent successfully")
+    }
+  } catch (error) {
+    console.warn("Webhook notification failed (non-critical):", error)
+  }
+}
+
 async function fetchMainServerMembers(): Promise<number> {
   try {
     // Extract invite code from URL
@@ -55,55 +79,40 @@ async function fetchMainServerMembers(): Promise<number> {
     const memberCount = data.guild?.approximate_member_count || data.approximate_member_count || 250
     console.log("Extracted member count:", memberCount)
 
-    // Send webhook notification about the successful update
-    try {
-      const webhookPayload = {
-        embeds: [
-          {
-            title: "🔄 Unified Realms HQ Member Count Updated",
-            description: `Successfully fetched latest member count from Discord API.`,
-            fields: [
-              {
-                name: "📊 New Member Count",
-                value: memberCount.toLocaleString(),
-                inline: true,
-              },
-              {
-                name: "🕒 Last Updated",
-                value: new Date().toLocaleString(),
-                inline: true,
-              },
-              {
-                name: "🔗 Server",
-                value: "Unified Realms HQ",
-                inline: true,
-              },
-            ],
-            color: 0x00ff00,
-            timestamp: new Date().toISOString(),
-            footer: {
-              text: "Unified Realms Alliance Bot",
+    // Send optional webhook notification about the successful update
+    const webhookPayload = {
+      embeds: [
+        {
+          title: "🔄 Unified Realms HQ Member Count Updated",
+          description: `Successfully fetched latest member count from Discord API.`,
+          fields: [
+            {
+              name: "📊 New Member Count",
+              value: memberCount.toLocaleString(),
+              inline: true,
             },
+            {
+              name: "🕒 Last Updated",
+              value: new Date().toLocaleString(),
+              inline: true,
+            },
+            {
+              name: "🔗 Server",
+              value: "Unified Realms HQ",
+              inline: true,
+            },
+          ],
+          color: 0x00ff00,
+          timestamp: new Date().toISOString(),
+          footer: {
+            text: "Unified Realms Alliance Bot",
           },
-        ],
-      }
-
-      const webhookResponse = await fetch(DISCORD_WEBHOOK_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify(webhookPayload),
-      })
-
-      if (!webhookResponse.ok) {
-        console.error("Webhook notification failed:", webhookResponse.status)
-      } else {
-        console.log("Webhook notification sent successfully")
-      }
-    } catch (webhookError) {
-      console.error("Error sending webhook notification:", webhookError)
+      ],
     }
+
+    // Send webhook notification (non-blocking)
+    sendOptionalWebhook(webhookPayload)
 
     return memberCount
   } catch (error) {
