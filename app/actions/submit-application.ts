@@ -45,10 +45,8 @@ export async function submitApplication(formData: FormData) {
       // Don't fail the application submission if webhook fails
     }
 
-    // Redirect to confirmation page with server details
-    redirect(
-      `/confirmation?server=${encodeURIComponent(applicationData.name)}&members=${applicationData.members}&owner=${encodeURIComponent(applicationData.ownerName)}`,
-    )
+    // Redirect to confirmation page
+    redirect("/confirmation")
   } catch (error) {
     console.error("Error submitting application:", error)
     throw new Error("Failed to submit application. Please try again.")
