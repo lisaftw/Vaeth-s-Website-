@@ -72,6 +72,9 @@ export async function manageSettings(formData: FormData) {
         break
     }
 
+    // In a real app, this would save to a database
+    console.log("Managing settings:", settings)
+
     redirect(`/admin?password=${password}&tab=settings&success=${action}`)
   } catch (error) {
     console.error("Error managing settings:", error)

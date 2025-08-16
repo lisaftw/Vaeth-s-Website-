@@ -1,27 +1,56 @@
 "use server"
 
-import { redirect } from "next/navigation"
-import { approveApplicationToServer } from "@/lib/data-store"
+import { approveApplicationToServer, getApplicationsData } from "@/lib/data-store"
+import { sendApprovalWebhook } from "@/lib/discord-webhook"
 
 export async function approveApplication(formData: FormData) {
-  const index = Number.parseInt(formData.get("index") as string)
-  const password = formData.get("password") as string
-
-  if (password !== "unified2024") {
-    redirect("/admin?error=invalid")
-    return
-  }
-
   try {
+    const index = Number.parseInt(formData.get("index") as string)
+
+    if (isNaN(index) || index < 0) {
+      return {
+        success: false,
+        error: "Invalid application index",
+      }
+    }
+
+    // Get the application before approving to send webhook
+    const applications = getApplicationsData()
+    const application = applications[index]
+
+    if (!application) {
+      return {
+        success: false,
+        error: "Application not found",
+      }
+    }
+
+    // Approve the application (moves it to servers)
     const success = approveApplicationToServer(index)
 
-    if (success) {
-      redirect(`/admin?password=${password}&tab=applications&approved=true`)
-    } else {
-      redirect(`/admin?password=${password}&tab=applications&error=approve_failed`)
+    if (!success) {
+      return {
+        success: false,
+        error: "Failed to approve application",
+      }
+    }
+
+    // Send Discord notification
+    try {
+      await sendApprovalWebhook(application.name, true)
+    } catch (webhookError) {
+      console.error("Discord webhook failed:", webhookError)
+    }
+
+    return {
+      success: true,
+      message: `${application.name} has been approved and added to the alliance!`,
     }
   } catch (error) {
     console.error("Error approving application:", error)
-    redirect(`/admin?password=${password}&tab=applications&error=approve_failed`)
+    return {
+      success: false,
+      error: "Failed to approve application",
+    }
   }
 }

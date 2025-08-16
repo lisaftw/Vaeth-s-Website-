@@ -35,6 +35,13 @@ export async function manageAnnouncements(formData: FormData) {
   }
 
   try {
+    const data = {
+      content: formData.get("content") as string,
+      action: action,
+    }
+
+    console.log("Managing announcement:", data)
+
     switch (action) {
       case "create":
         const newAnnouncement: Announcement = {

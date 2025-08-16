@@ -1,27 +1,56 @@
 "use server"
 
-import { redirect } from "next/navigation"
-import { removeApplication } from "@/lib/data-store"
+import { removeApplication, getApplicationsData } from "@/lib/data-store"
+import { sendApprovalWebhook } from "@/lib/discord-webhook"
 
 export async function rejectApplication(formData: FormData) {
-  const index = Number.parseInt(formData.get("index") as string)
-  const password = formData.get("password") as string
-
-  if (password !== "unified2024") {
-    redirect("/admin?error=invalid")
-    return
-  }
-
   try {
+    const index = Number.parseInt(formData.get("index") as string)
+
+    if (isNaN(index) || index < 0) {
+      return {
+        success: false,
+        error: "Invalid application index",
+      }
+    }
+
+    // Get the application before rejecting to send webhook
+    const applications = getApplicationsData()
+    const application = applications[index]
+
+    if (!application) {
+      return {
+        success: false,
+        error: "Application not found",
+      }
+    }
+
+    // Remove the application
     const removedApplication = removeApplication(index)
 
-    if (removedApplication) {
-      redirect(`/admin?password=${password}&tab=applications&rejected=true`)
-    } else {
-      redirect(`/admin?password=${password}&tab=applications&error=reject_failed`)
+    if (!removedApplication) {
+      return {
+        success: false,
+        error: "Failed to reject application",
+      }
+    }
+
+    // Send Discord notification
+    try {
+      await sendApprovalWebhook(application.name, false)
+    } catch (webhookError) {
+      console.error("Discord webhook failed:", webhookError)
+    }
+
+    return {
+      success: true,
+      message: `${application.name} has been rejected.`,
     }
   } catch (error) {
     console.error("Error rejecting application:", error)
-    redirect(`/admin?password=${password}&tab=applications&error=reject_failed`)
+    return {
+      success: false,
+      error: "Failed to reject application",
+    }
   }
 }

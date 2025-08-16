@@ -1,48 +1,46 @@
 "use server"
 
-import { redirect } from "next/navigation"
-import { addServer as addServerToStore, type Server } from "@/lib/data-store"
+import { addServer as addServerToStore } from "@/lib/data-store"
 
 export async function addServer(formData: FormData) {
-  const password = formData.get("password") as string
-
-  if (password !== "unified2024") {
-    redirect("/admin?error=invalid")
-    return
-  }
-
   try {
-    const name = formData.get("name") as string
-    const description = formData.get("description") as string
-    const members = Number.parseInt(formData.get("members") as string)
-    const invite = formData.get("invite") as string
-    const logo = formData.get("logo") as string
-    const tags = formData.get("tags") as string
-    const verified = formData.get("verified") === "on"
-    const representativeDiscordId = formData.get("representativeDiscordId") as string
-
-    const newServer: Server = {
-      name,
-      description,
-      members,
-      invite,
-      logo: logo || undefined,
-      representativeDiscordId: representativeDiscordId || undefined,
-      verified,
+    const serverData = {
+      name: formData.get("name") as string,
+      description: formData.get("description") as string,
+      members: Number.parseInt(formData.get("members") as string) || 0,
+      invite: formData.get("invite") as string,
+      logo: formData.get("logo") as string,
+      verified: formData.get("verified") === "on",
       dateAdded: new Date().toISOString(),
-      tags: tags
-        ? tags
+      tags: formData.get("tags")
+        ? (formData.get("tags") as string)
             .split(",")
             .map((tag) => tag.trim())
-            .filter((tag) => tag.length > 0)
+            .filter(Boolean)
         : [],
+      representativeDiscordId: formData.get("representativeDiscordId") as string,
     }
 
-    addServerToStore(newServer)
+    // Validate required fields
+    if (!serverData.name || !serverData.description || !serverData.members || !serverData.invite) {
+      return {
+        success: false,
+        error: "Please fill in all required fields",
+      }
+    }
 
-    redirect(`/admin?password=${password}&tab=servers&added=true`)
+    // Add to data store
+    addServerToStore(serverData)
+
+    return {
+      success: true,
+      message: `${serverData.name} has been added to the alliance!`,
+    }
   } catch (error) {
     console.error("Error adding server:", error)
-    redirect(`/admin?password=${password}&tab=add-server&error=add_failed`)
+    return {
+      success: false,
+      error: "Failed to add server",
+    }
   }
 }

@@ -1,50 +1,64 @@
 "use server"
 
-import { redirect } from "next/navigation"
-import { getServers } from "./get-servers"
+import { getServersData, removeServer, addServer } from "@/lib/data-store"
 
 export async function updateServer(formData: FormData) {
-  const password = formData.get("password") as string
-  const index = Number.parseInt(formData.get("index") as string)
-
-  if (password !== "unified2024") {
-    redirect("/admin?error=invalid")
-    return
-  }
-
   try {
-    const servers = await getServers()
+    const index = Number.parseInt(formData.get("index") as string)
 
-    if (servers[index]) {
-      const name = formData.get("name") as string
-      const description = formData.get("description") as string
-      const members = Number.parseInt(formData.get("members") as string)
-      const invite = formData.get("invite") as string
-      const logo = formData.get("logo") as string
-      const tags = formData.get("tags") as string
-      const verified = formData.get("verified") === "on"
-
-      servers[index] = {
-        ...servers[index],
-        name,
-        description,
-        members,
-        invite,
-        logo: logo || undefined,
-        verified,
-        tags: tags
-          ? tags
-              .split(",")
-              .map((tag) => tag.trim())
-              .filter((tag) => tag.length > 0)
-          : [],
+    if (isNaN(index) || index < 0) {
+      return {
+        success: false,
+        error: "Invalid server index",
       }
+    }
 
-      // In a real app, you'd save to database here
-      redirect(`/admin?password=${password}&tab=servers&updated=true`)
+    const servers = getServersData()
+    if (index >= servers.length) {
+      return {
+        success: false,
+        error: "Server not found",
+      }
+    }
+
+    const updatedServerData = {
+      name: formData.get("name") as string,
+      description: formData.get("description") as string,
+      members: Number.parseInt(formData.get("members") as string) || 0,
+      invite: formData.get("invite") as string,
+      logo: formData.get("logo") as string,
+      verified: servers[index].verified, // Keep existing verification status
+      dateAdded: servers[index].dateAdded, // Keep original date
+      tags: servers[index].tags, // Keep existing tags
+      representativeDiscordId: formData.get("representativeDiscordId") as string,
+    }
+
+    // Validate required fields
+    if (
+      !updatedServerData.name ||
+      !updatedServerData.description ||
+      !updatedServerData.members ||
+      !updatedServerData.invite
+    ) {
+      return {
+        success: false,
+        error: "Please fill in all required fields",
+      }
+    }
+
+    // Remove old server and add updated one
+    removeServer(index)
+    addServer(updatedServerData)
+
+    return {
+      success: true,
+      message: `${updatedServerData.name} has been updated!`,
     }
   } catch (error) {
     console.error("Error updating server:", error)
-    redirect(`/admin?password=${password}&tab=servers&error=update_failed`)
+    return {
+      success: false,
+      error: "Failed to update server",
+    }
   }
 }
