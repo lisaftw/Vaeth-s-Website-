@@ -418,16 +418,16 @@ export default function AdminPanel() {
                       <div className="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
                         <Button
                           onClick={() => handleApprove(application.id)}
-                          className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 rounded-xl py-4 text-lg font-bold shadow-lg shadow-green-900/30 transition-all duration-300 hover:scale-105"
+                          className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 rounded-lg py-2 px-4 text-sm font-semibold shadow-lg shadow-green-900/30 transition-all duration-300 hover:scale-105"
                         >
-                          <CheckCircle className="w-5 h-5 mr-2" />
+                          <CheckCircle className="w-4 h-4 mr-2" />
                           APPROVE & WELCOME
                         </Button>
                         <Button
                           onClick={() => handleReject(application.id)}
-                          className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-0 rounded-xl py-4 text-lg font-bold shadow-lg shadow-red-900/30 transition-all duration-300 hover:scale-105"
+                          className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-0 rounded-lg py-2 px-4 text-sm font-semibold shadow-lg shadow-red-900/30 transition-all duration-300 hover:scale-105"
                         >
-                          <XCircle className="w-5 h-5 mr-2" />
+                          <XCircle className="w-4 h-4 mr-2" />
                           REJECT APPLICATION
                         </Button>
                       </div>
