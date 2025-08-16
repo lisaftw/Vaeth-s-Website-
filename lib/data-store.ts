@@ -1,6 +1,8 @@
 // Simple in-memory data store for demo purposes
 // In a real app, this would be a database
 
+import { websiteStorage, syncWebsiteWithDataStore } from "./server-storage"
+
 export interface Application {
   name: string
   description: string
@@ -56,16 +58,25 @@ export function removeApplication(index: number): Application | null {
   return null
 }
 
-export function addServer(server: Server): void {
+export async function addServer(server: Server): Promise<void> {
   console.log("Adding server to data store:", server)
   servers.push(server)
+
+  // Sync with website storage (with Discord API integration)
+  await websiteStorage.addServerToWebsite(server)
+
   console.log("Total servers now:", servers.length)
+  console.log("Total servers on website:", websiteStorage.getTotalServers())
 }
 
 export function removeServer(index: number): Server | null {
   console.log("Removing server at index:", index)
   if (index >= 0 && index < servers.length) {
     const removed = servers.splice(index, 1)[0]
+
+    // Sync with website storage
+    syncWebsiteWithDataStore(servers)
+
     console.log("Removed server:", removed)
     return removed
   }
@@ -73,7 +84,7 @@ export function removeServer(index: number): Server | null {
   return null
 }
 
-export function approveApplicationToServer(applicationIndex: number): boolean {
+export async function approveApplicationToServer(applicationIndex: number): Promise<boolean> {
   console.log("Approving application at index:", applicationIndex)
   if (applicationIndex >= 0 && applicationIndex < applications.length) {
     const application = applications[applicationIndex]
@@ -96,13 +107,22 @@ export function approveApplicationToServer(applicationIndex: number): boolean {
     servers.push(newServer)
     applications.splice(applicationIndex, 1)
 
+    // Sync with website storage (with Discord API integration)
+    await websiteStorage.addServerToWebsite(newServer)
+
     console.log("Application approved and moved to servers")
     console.log("New server:", newServer)
     console.log("Remaining applications:", applications.length)
     console.log("Total servers:", servers.length)
+    console.log("Total servers on website:", websiteStorage.getTotalServers())
 
     return true
   }
   console.log("Invalid application index for approval:", applicationIndex)
   return false
+}
+
+// Get total stats (now uses website storage with Discord API data)
+export function getStats() {
+  return websiteStorage.getWebsiteStats()
 }

@@ -1,41 +1,98 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Server, Crown, Shield } from "lucide-react"
+import { Users, Server, Shield } from "lucide-react"
+import { useEffect, useState } from "react"
+
+interface StatsData {
+  totalServers: number
+  totalMembers: number
+  securityScore: number
+  lastUpdated: string
+}
 
 export function StatsDashboard() {
-  const stats = [
+  const [stats, setStats] = useState<StatsData>({
+    totalServers: 1,
+    totalMembers: 250, // Updated default
+    securityScore: 100,
+    lastUpdated: new Date().toISOString(),
+  })
+
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Function to fetch updated stats
+  const fetchStats = async () => {
+    setIsLoading(true)
+    try {
+      console.log("Fetching stats from API...")
+      const response = await fetch("/api/stats", {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Received stats data:", data)
+
+        setStats({
+          totalServers: data.totalServers || 1,
+          totalMembers: data.totalMembers || 250,
+          securityScore: data.securityScore || 100,
+          lastUpdated: data.lastUpdated || new Date().toISOString(),
+        })
+      } else {
+        console.error("Failed to fetch stats:", response.status, response.statusText)
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    console.log("StatsDashboard mounted, fetching initial stats...")
+    fetchStats()
+
+    // Refresh stats every 30 seconds
+    const interval = setInterval(() => {
+      console.log("Auto-refreshing stats...")
+      fetchStats()
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const statsConfig = [
     {
-      title: "Total Servers",
-      value: 1,
+      title: "Alliance Servers",
+      value: stats.totalServers,
       icon: Server,
       color: "text-red-400",
       bgColor: "bg-red-500/10",
       suffix: "",
+      description: "Total servers in alliance",
     },
     {
-      title: "Alliance Members",
-      value: 0,
+      title: "Total Members",
+      value: stats.totalMembers,
       icon: Users,
       color: "text-blue-400",
       bgColor: "bg-blue-500/10",
       suffix: "",
-    },
-    {
-      title: "Elite Partnerships",
-      value: 0,
-      icon: Crown,
-      color: "text-yellow-400",
-      bgColor: "bg-yellow-500/10",
-      suffix: "",
+      description: "Combined member count",
     },
     {
       title: "Security Score",
-      value: 100,
+      value: stats.securityScore,
       icon: Shield,
       color: "text-cyan-400",
       bgColor: "bg-cyan-500/10",
       suffix: "%",
+      description: "Alliance security rating",
     },
   ]
 
@@ -51,14 +108,22 @@ export function StatsDashboard() {
           </h2>
           <div className="w-16 h-1 bg-gradient-to-r from-red-600 to-red-400 mx-auto mb-4"></div>
           <p className="text-gray-400 text-lg">Real-time metrics from across the digital empire</p>
+          {stats.lastUpdated && (
+            <p className="text-gray-500 text-sm mt-2">Last updated: {new Date(stats.lastUpdated).toLocaleString()}</p>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {stats.map((stat, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          {statsConfig.map((stat, index) => (
             <Card
               key={index}
-              className="bg-gradient-to-br from-gray-900 via-gray-900 to-black border-red-900/30 hover:border-red-600/50 transition-all duration-500 hover:scale-105 group overflow-hidden"
+              className="bg-gradient-to-br from-gray-900 via-gray-900 to-black border-red-900/30 hover:border-red-600/50 transition-all duration-500 hover:scale-105 group overflow-hidden relative"
             >
+              {isLoading && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
+                  <div className="w-6 h-6 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin"></div>
+                </div>
+              )}
               <div className="absolute inset-0 bg-gradient-to-br from-red-950/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <CardHeader className="relative z-10 pb-4">
                 <div className="flex items-center justify-between">
@@ -69,18 +134,21 @@ export function StatsDashboard() {
                   </div>
                   <div className="text-right">
                     <CardTitle className="text-3xl font-bold text-white">
-                      {stat.value}
+                      {stat.value.toLocaleString()}
                       {stat.suffix}
                     </CardTitle>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="relative z-10">
-                <p className={`font-semibold ${stat.color} text-lg`}>{stat.title}</p>
-                <div className="mt-2 h-1 bg-gray-800 rounded-full overflow-hidden">
+                <p className={`font-semibold ${stat.color} text-lg mb-1`}>{stat.title}</p>
+                <p className="text-gray-500 text-sm">{stat.description}</p>
+                <div className="mt-3 h-1 bg-gray-800 rounded-full overflow-hidden">
                   <div
-                    className={`h-full bg-gradient-to-r ${stat.color.replace("text-", "from-")} to-transparent rounded-full animate-pulse`}
-                    style={{ width: `${Math.min(stat.value / 10, 100)}%` }}
+                    className={`h-full bg-gradient-to-r ${stat.color.replace("text-", "from-")} to-transparent rounded-full transition-all duration-1000 ${
+                      isLoading ? "animate-pulse" : ""
+                    }`}
+                    style={{ width: `${Math.min((stat.value / (stat.suffix === "%" ? 1 : 10)) * 10, 100)}%` }}
                   ></div>
                 </div>
               </CardContent>

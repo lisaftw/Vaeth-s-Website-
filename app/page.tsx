@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Handshake, Megaphone, Crown, Shield } from "lucide-react"
 import Link from "next/link"
-import { getServers } from "./actions/get-servers"
+import { getWebsiteServers } from "@/lib/server-storage"
 import { StatsDashboard } from "@/components/stats-dashboard"
 import { InteractiveServerCard } from "@/components/interactive-server-card"
 import { TypingAnimation } from "@/components/typing-animation"
@@ -10,7 +10,8 @@ import { ModernLogo } from "@/components/modern-logo"
 import { MobileNavigation } from "@/components/mobile-navigation"
 
 export default async function HomePage() {
-  const servers = await getServers()
+  // Get all servers including main server with Discord API data
+  const allServers = getWebsiteServers()
 
   const typingTexts = ["Elite Discord Alliance", "Powerful Server Network", "Strategic Partnerships", "Digital Empire"]
 
@@ -193,28 +194,30 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Servers */}
+      {/* Alliance Servers Section */}
       <section id="servers" className="py-24 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-red-950/5 to-transparent"></div>
         <div className="container mx-auto relative z-10">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
               <span className="bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
-                Elite Realms
+                Alliance Servers
               </span>
             </h2>
             <div className="w-16 h-1 bg-gradient-to-r from-red-600 to-red-400 mx-auto mb-4"></div>
-            <p className="text-gray-400 text-lg">Discover the most prestigious servers in our alliance</p>
+            <p className="text-gray-400 text-lg">
+              Discover all servers in our growing alliance network with real-time member counts
+            </p>
           </div>
 
-          {servers.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {servers.map((server, index) => (
-                <InteractiveServerCard key={index} server={server} index={index} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {allServers.map((server, index) => (
+              <InteractiveServerCard key={`${server.invite}-${index}`} server={server} index={index} />
+            ))}
+          </div>
+
+          {allServers.length === 1 && (
+            <div className="text-center py-12 mt-8">
               <div className="w-24 h-24 bg-gradient-to-br from-red-600/20 to-red-800/20 rounded-full mx-auto mb-8 flex items-center justify-center">
                 <Crown className="w-12 h-12 text-red-500 animate-pulse" />
               </div>

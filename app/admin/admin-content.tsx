@@ -35,6 +35,13 @@ import { manageSettings } from "@/app/actions/manage-settings"
 import type React from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import { getManualStats, getServerMemberCounts } from "@/lib/manual-stats"
+import {
+  updateManualStatsAction,
+  updateServerMemberCountAction,
+  refreshMainServerAction,
+} from "@/app/actions/update-manual-stats"
+import { addServerToMemberCounts, removeServerFromMemberCounts } from "@/lib/manual-stats"
 
 const ADMIN_PASSWORD = "unified2024"
 
@@ -69,6 +76,12 @@ export default function AdminContent() {
     autoApproval: false,
     maintenanceMode: false,
   })
+  const [manualStats, setManualStats] = useState({
+    totalServers: 1,
+    totalMembers: 50,
+    securityScore: 100,
+  })
+  const [serverMemberCounts, setServerMemberCounts] = useState<{ [key: string]: number }>({})
 
   // Check authentication and load data
   useEffect(() => {
@@ -97,6 +110,7 @@ export default function AdminContent() {
           console.log("Admin Panel - Auto-authenticating from URL")
           setIsAuthenticated(true)
           loadData()
+          loadManualStats()
         } else if (urlPassword) {
           console.log("Admin Panel - Invalid password in URL:", urlPassword)
           setError("Invalid password in URL")
@@ -126,6 +140,18 @@ export default function AdminContent() {
     } catch (error) {
       console.error("Error loading data:", error)
       setError("Failed to load data: " + String(error))
+    }
+  }
+
+  const loadManualStats = () => {
+    try {
+      const stats = getManualStats()
+      const memberCounts = getServerMemberCounts()
+      setManualStats(stats)
+      setServerMemberCounts(memberCounts)
+      console.log("Manual stats loaded:", stats)
+    } catch (error) {
+      console.error("Error loading manual stats:", error)
     }
   }
 
@@ -189,7 +215,14 @@ export default function AdminContent() {
       const result = await removeServer(formData)
 
       if (result.success) {
+        // Remove from manual stats tracking
+        const serverToRemove = servers[index]
+        if (serverToRemove) {
+          removeServerFromMemberCounts(serverToRemove.name)
+        }
+
         loadData() // Refresh data
+        loadManualStats() // Refresh manual stats
         alert(result.message)
       } else {
         alert(result.error)
@@ -223,6 +256,9 @@ export default function AdminContent() {
       const result = await addServer(formData)
 
       if (result.success) {
+        // Add to manual stats tracking
+        addServerToMemberCounts(newServer.name, Number.parseInt(newServer.members) || 0)
+
         setNewServer({
           name: "",
           description: "",
@@ -233,6 +269,7 @@ export default function AdminContent() {
           representativeDiscordId: "",
         })
         loadData() // Refresh data
+        loadManualStats() // Refresh manual stats
         alert(result.message)
       } else {
         alert(result.error)
@@ -316,6 +353,50 @@ export default function AdminContent() {
     }
   }
 
+  const handleUpdateStats = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append("totalServers", manualStats.totalServers.toString())
+      formData.append("totalMembers", manualStats.totalMembers.toString())
+      formData.append("securityScore", manualStats.securityScore.toString())
+
+      const result = await updateManualStatsAction(formData)
+
+      if (result.success) {
+        alert(result.message)
+      } else {
+        alert(result.error)
+      }
+    } catch (error) {
+      console.error("Error updating stats:", error)
+      alert("Failed to update stats")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpdateServerMemberCount = async (serverName: string, newCount: number) => {
+    try {
+      const formData = new FormData()
+      formData.append("serverName", serverName)
+      formData.append("memberCount", newCount.toString())
+
+      const result = await updateServerMemberCountAction(formData)
+
+      if (result.success) {
+        setServerMemberCounts((prev) => ({ ...prev, [serverName]: newCount }))
+        loadManualStats() // Refresh to get updated totals
+      } else {
+        alert(result.error)
+      }
+    } catch (error) {
+      console.error("Error updating server member count:", error)
+      alert("Failed to update server member count")
+    }
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     console.log("Admin Panel - Manual login attempt")
@@ -326,6 +407,7 @@ export default function AdminContent() {
         setIsAuthenticated(true)
         setError("")
         loadData() // Load data after successful login
+        loadManualStats()
 
         // Update URL safely
         try {
@@ -365,6 +447,7 @@ export default function AdminContent() {
       const interval = setInterval(() => {
         console.log("Auto-refreshing admin data...")
         loadData()
+        loadManualStats()
       }, 10000)
 
       return () => clearInterval(interval)
@@ -451,6 +534,25 @@ export default function AdminContent() {
     )
   }
 
+  const handleRefreshMainServer = async () => {
+    setLoading(true)
+    try {
+      const result = await refreshMainServerAction()
+
+      if (result.success) {
+        loadManualStats() // Refresh to get updated data
+        alert(result.message)
+      } else {
+        alert(result.error)
+      }
+    } catch (error) {
+      console.error("Error refreshing main server:", error)
+      alert("Failed to refresh main server data")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const tabs = [
     {
       id: "applications",
@@ -475,6 +577,12 @@ export default function AdminContent() {
     {
       id: "analytics",
       label: "Analytics",
+      shortLabel: "Stats",
+      icon: Settings,
+    },
+    {
+      id: "stats-management",
+      label: "Stats Management",
       shortLabel: "Stats",
       icon: Settings,
     },
@@ -1245,6 +1353,146 @@ export default function AdminContent() {
           </div>
         )}
 
+        {/* Stats Management Tab */}
+        {activeTab === "stats-management" && (
+          <div>
+            <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 mb-6 md:mb-8">
+              <Settings className="w-6 md:w-8 h-6 md:h-8 text-red-500" />
+              <h2 className="text-2xl md:text-3xl font-bold text-white text-center">Stats Management</h2>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Overall Stats Management */}
+              <Card className="bg-gradient-to-br from-gray-900 to-black border-red-900/30">
+                <CardHeader>
+                  <CardTitle className="text-white">Alliance Statistics</CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Manually update the main statistics displayed on the website
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleUpdateStats} className="space-y-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="total-servers" className="text-base font-semibold text-red-400">
+                        Total Alliance Servers
+                      </Label>
+                      <Input
+                        id="total-servers"
+                        type="number"
+                        value={manualStats.totalServers}
+                        onChange={(e) =>
+                          setManualStats((prev) => ({ ...prev, totalServers: Number.parseInt(e.target.value) || 0 }))
+                        }
+                        className="bg-gray-800/50 border-red-900/50 focus:border-red-500 text-white"
+                        min="1"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="total-members" className="text-base font-semibold text-red-400">
+                        Total Members
+                      </Label>
+                      <Input
+                        id="total-members"
+                        type="number"
+                        value={manualStats.totalMembers}
+                        onChange={(e) =>
+                          setManualStats((prev) => ({ ...prev, totalMembers: Number.parseInt(e.target.value) || 0 }))
+                        }
+                        className="bg-gray-800/50 border-red-900/50 focus:border-red-500 text-white"
+                        min="0"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="security-score" className="text-base font-semibold text-red-400">
+                        Security Score (%)
+                      </Label>
+                      <Input
+                        id="security-score"
+                        type="number"
+                        value={manualStats.securityScore}
+                        onChange={(e) =>
+                          setManualStats((prev) => ({ ...prev, securityScore: Number.parseInt(e.target.value) || 0 }))
+                        }
+                        className="bg-gray-800/50 border-red-900/50 focus:border-red-500 text-white"
+                        min="0"
+                        max="100"
+                      />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Update Alliance Stats
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              {/* Individual Server Member Counts */}
+              <Card className="bg-gradient-to-br from-gray-900 to-black border-red-900/30">
+                <CardHeader>
+                  <CardTitle className="text-white">Server Member Counts</CardTitle>
+                  <CardDescription className="text-gray-400">Update individual server member counts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {Object.entries(serverMemberCounts).map(([serverName, memberCount]) => (
+                      <div key={serverName} className="flex items-center space-x-3">
+                        <div className="flex-1">
+                          <Label className="text-sm text-gray-300">{serverName}</Label>
+                        </div>
+                        <div className="w-32">
+                          <Input
+                            type="number"
+                            value={memberCount}
+                            onChange={(e) =>
+                              handleUpdateServerMemberCount(serverName, Number.parseInt(e.target.value) || 0)
+                            }
+                            className="bg-gray-800/50 border-gray-600 text-white text-sm"
+                            min="0"
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                    {Object.keys(serverMemberCounts).length === 0 && (
+                      <p className="text-gray-400 text-center py-8">No servers to manage yet</p>
+                    )}
+                  </div>
+
+                  <div className="mt-6 p-4 bg-blue-950/30 border border-blue-900/50 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <AlertTriangle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-1" />
+                      <div>
+                        <h4 className="font-bold text-blue-300 mb-2">Auto-Calculation</h4>
+                        <p className="text-blue-200 text-sm">
+                          The total members count will automatically update when you change individual server member
+                          counts.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="mt-6">
+              <Button
+                onClick={handleRefreshMainServer}
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                {loading ? "Refreshing..." : "Refresh Unified Realms HQ from Discord"}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Debug Panel */}
         {showDebug && (
           <Card className="mt-8 bg-gray-800 border-gray-600">
@@ -1268,6 +1516,8 @@ export default function AdminContent() {
               <div>✅ Error State: {error || "none"}</div>
               <div>✅ Discord Webhook: CONFIGURED</div>
               <div>✅ Auto-refresh: ENABLED (10s)</div>
+              <div>✅ Manual Stats: {JSON.stringify(manualStats)}</div>
+              <div>✅ Server Member Counts: {JSON.stringify(serverMemberCounts)}</div>
             </CardContent>
           </Card>
         )}
