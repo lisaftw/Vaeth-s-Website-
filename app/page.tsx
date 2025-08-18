@@ -11,7 +11,8 @@ import { MobileNavigation } from "@/components/mobile-navigation"
 
 export default async function HomePage() {
   // Get all servers including main server with Discord API data
-  const allServers = getWebsiteServers()
+  const allServers = Array.isArray(getWebsiteServers()) ? getWebsiteServers() : []
+  console.log("Homepage allServers:", allServers, "Type:", typeof allServers, "IsArray:", Array.isArray(allServers))
 
   const typingTexts = ["Elite Discord Alliance", "Powerful Server Network", "Strategic Partnerships", "Digital Empire"]
 

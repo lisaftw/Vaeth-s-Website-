@@ -1,19 +1,11 @@
 "use server"
 
-import { addServer as addServerToStore } from "@/lib/data-store"
+import { addServer as addServerToStore, debugDataStore } from "@/lib/data-store"
+import { addServerToMemberCounts } from "@/lib/manual-stats"
 
 export async function addServer(formData: FormData) {
   try {
-    console.log("=== ADD SERVER ACTION START ===")
-    console.log("Form data received:", {
-      name: formData.get("name"),
-      description: formData.get("description"),
-      members: formData.get("members"),
-      invite: formData.get("invite"),
-      logo: formData.get("logo"),
-      tags: formData.get("tags"),
-      representativeDiscordId: formData.get("representativeDiscordId"),
-    })
+    console.log("=== ADD SERVER ACTION STARTED ===")
 
     const serverData = {
       name: formData.get("name") as string,
@@ -32,7 +24,7 @@ export async function addServer(formData: FormData) {
       representativeDiscordId: formData.get("representativeDiscordId") as string,
     }
 
-    console.log("Processed server data:", serverData)
+    console.log("Server data to add:", serverData)
 
     // Validate required fields
     if (!serverData.name || !serverData.description || !serverData.members || !serverData.invite) {
@@ -43,25 +35,32 @@ export async function addServer(formData: FormData) {
       }
     }
 
-    console.log("Validation passed, adding server to store...")
+    console.log("Validation passed, adding server to Supabase...")
 
-    // Add to data store
+    // Add to Supabase
     await addServerToStore(serverData)
 
-    console.log("Server added successfully to data store")
-    console.log("=== ADD SERVER ACTION END ===")
+    console.log("Server added to Supabase, updating manual stats...")
+
+    // Add to manual stats tracking
+    await addServerToMemberCounts(serverData.name, serverData.members)
+
+    console.log("Manual stats updated")
+
+    // Debug the current state
+    await debugDataStore()
+
+    console.log("=== ADD SERVER ACTION COMPLETED ===")
 
     return {
       success: true,
       message: `${serverData.name} has been added to the alliance!`,
     }
   } catch (error) {
-    console.error("=== ADD SERVER ACTION ERROR ===")
     console.error("Error adding server:", error)
-    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace")
     return {
       success: false,
-      error: "Failed to add server: " + (error instanceof Error ? error.message : String(error)),
+      error: "Failed to add server: " + String(error),
     }
   }
 }

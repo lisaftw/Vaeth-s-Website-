@@ -1,56 +1,39 @@
 "use server"
 
-import { approveApplicationToServer, getApplicationsData } from "@/lib/data-store"
-import { sendApprovalWebhook } from "@/lib/discord-webhook"
+import { approveApplicationToServer } from "@/lib/data-store"
 
 export async function approveApplication(formData: FormData) {
   try {
+    console.log("Approve application action called")
+
     const index = Number.parseInt(formData.get("index") as string)
+    console.log("Approving application at index:", index)
 
     if (isNaN(index) || index < 0) {
       return {
         success: false,
-        error: "Invalid application index",
+        message: "Invalid application index",
       }
     }
 
-    // Get the application before approving to send webhook
-    const applications = getApplicationsData()
-    const application = applications[index]
+    const success = await approveApplicationToServer(index)
 
-    if (!application) {
+    if (success) {
+      return {
+        success: true,
+        message: "Application approved and server added successfully!",
+      }
+    } else {
       return {
         success: false,
-        error: "Application not found",
+        message: "Failed to approve application",
       }
-    }
-
-    // Approve the application (moves it to servers)
-    const success = approveApplicationToServer(index)
-
-    if (!success) {
-      return {
-        success: false,
-        error: "Failed to approve application",
-      }
-    }
-
-    // Send Discord notification
-    try {
-      await sendApprovalWebhook(application.name, true)
-    } catch (webhookError) {
-      console.error("Discord webhook failed:", webhookError)
-    }
-
-    return {
-      success: true,
-      message: `${application.name} has been approved and added to the alliance!`,
     }
   } catch (error) {
-    console.error("Error approving application:", error)
+    console.error("Error in approveApplication:", error)
     return {
       success: false,
-      error: "Failed to approve application",
+      message: "Error approving application: " + String(error),
     }
   }
 }

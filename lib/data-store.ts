@@ -1,8 +1,8 @@
-// Simple in-memory data store for demo purposes
-// In a real app, this would be a database
+"use server"
 
-import { websiteStorage, syncWebsiteWithDataStore } from "./server-storage"
+import { supabase } from "./supabase"
 
+// Legacy interfaces for backward compatibility
 export interface Application {
   name: string
   description: string
@@ -10,6 +10,10 @@ export interface Application {
   invite: string
   logo?: string
   representativeDiscordId?: string
+  ownerName?: string
+  status?: "pending" | "approved" | "rejected"
+  submittedAt?: string
+  reviewedAt?: string
 }
 
 export interface Server {
@@ -24,131 +28,473 @@ export interface Server {
   representativeDiscordId?: string
 }
 
-// Initialize with empty arrays
-const applications: Application[] = []
-const servers: Server[] = []
+// Convert database row to legacy format
+function convertApplicationFromDB(dbApp: any): Application {
+  return {
+    name: dbApp.name,
+    description: dbApp.description,
+    members: dbApp.members,
+    invite: dbApp.invite,
+    logo: dbApp.logo,
+    representativeDiscordId: dbApp.representative_discord_id,
+    ownerName: dbApp.owner_name,
+    status: dbApp.status || "pending",
+    submittedAt: dbApp.created_at,
+    reviewedAt: dbApp.reviewed_at,
+  }
+}
+
+function convertServerFromDB(dbServer: any): Server {
+  return {
+    name: dbServer.name,
+    description: dbServer.description,
+    members: dbServer.members,
+    invite: dbServer.invite,
+    logo: dbServer.logo,
+    verified: dbServer.verified || false,
+    dateAdded: dbServer.created_at,
+    tags: dbServer.tags || [],
+    representativeDiscordId: dbServer.representative_discord_id,
+  }
+}
 
 // Data access functions
-export function getApplicationsData(): Application[] {
-  console.log("=== GET APPLICATIONS DATA ===")
-  console.log("Getting applications data, current count:", applications.length)
-  console.log("Applications:", applications)
-  return [...applications] // Return a copy
-}
-
-export function getServersData(): Server[] {
-  console.log("=== GET SERVERS DATA ===")
-  console.log("Getting servers data, current count:", servers.length)
-  console.log("Servers:", servers)
-  return [...servers] // Return a copy
-}
-
-export function addApplication(application: Application): void {
-  console.log("=== ADD APPLICATION ===")
-  console.log("Adding application to data store:", application)
-  applications.push(application)
-  console.log("Applications array after adding:", applications)
-  console.log("Total applications now:", applications.length)
-}
-
-export function removeApplication(index: number): Application | null {
-  console.log("=== REMOVE APPLICATION ===")
-  console.log("Removing application at index:", index)
-  if (index >= 0 && index < applications.length) {
-    const removed = applications.splice(index, 1)[0]
-    console.log("Removed application:", removed)
-    return removed
-  }
-  console.log("Invalid index for removal:", index)
-  return null
-}
-
-export async function addServer(server: Server): Promise<void> {
-  console.log("=== ADD SERVER TO DATA STORE ===")
-  console.log("Adding server to data store:", server)
-  console.log("Current servers count before adding:", servers.length)
-
-  servers.push(server)
-
-  console.log("Server added to local array")
-  console.log("Current servers count after adding:", servers.length)
-  console.log("Updated servers array:", servers)
-
+export async function getApplicationsData(): Promise<Application[]> {
   try {
-    // Sync with website storage (with Discord API integration)
-    console.log("Syncing with website storage...")
-    await websiteStorage.addServerToWebsite(server)
-    console.log("Website storage sync completed")
+    console.log("Fetching applications from Supabase...")
+
+    // First try to get applications with status column
+    const { data, error } = await supabase.from("applications").select("*").order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching applications:", error)
+      return []
+    }
+
+    // Filter for pending applications (or all if no status column)
+    const applications =
+      data?.map(convertApplicationFromDB).filter((app) => !app.status || app.status === "pending") || []
+
+    console.log("Fetched applications:", applications.length)
+    return applications
   } catch (error) {
-    console.error("Error syncing with website storage:", error)
-    // Don't fail the operation if website sync fails
+    console.error("Error in getApplicationsData:", error)
+    return []
   }
-
-  console.log("Total servers now:", servers.length)
-  console.log("Total servers on website:", websiteStorage.getTotalServers())
-  console.log("=== ADD SERVER TO DATA STORE COMPLETE ===")
 }
 
-export function removeServer(index: number): Server | null {
-  console.log("=== REMOVE SERVER ===")
-  console.log("Removing server at index:", index)
-  if (index >= 0 && index < servers.length) {
-    const removed = servers.splice(index, 1)[0]
+export async function getServersData(): Promise<Server[]> {
+  try {
+    console.log("Fetching servers from Supabase...")
 
-    // Sync with website storage
-    syncWebsiteWithDataStore(servers)
+    const { data, error } = await supabase.from("servers").select("*").order("created_at", { ascending: false })
 
-    console.log("Removed server:", removed)
-    return removed
+    if (error) {
+      console.error("Error fetching servers:", error)
+      return []
+    }
+
+    const servers = data?.map(convertServerFromDB) || []
+    console.log("Fetched servers:", servers.length)
+    return servers
+  } catch (error) {
+    console.error("Error in getServersData:", error)
+    return []
   }
-  console.log("Invalid index for removal:", index)
-  return null
 }
 
-export async function approveApplicationToServer(applicationIndex: number): Promise<boolean> {
-  console.log("=== APPROVE APPLICATION ===")
-  console.log("Approving application at index:", applicationIndex)
-  if (applicationIndex >= 0 && applicationIndex < applications.length) {
-    const application = applications[applicationIndex]
-    console.log("Application to approve:", application)
+export async function addApplication(application: Application): Promise<void> {
+  try {
+    console.log("Adding application to Supabase:", application)
 
-    // Convert application to server
-    const newServer: Server = {
+    const insertData: any = {
       name: application.name,
       description: application.description,
       members: application.members,
       invite: application.invite,
       logo: application.logo,
-      representativeDiscordId: application.representativeDiscordId,
-      verified: false,
-      dateAdded: new Date().toISOString(),
-      tags: ["New Member"],
+      representative_discord_id: application.representativeDiscordId,
+      created_at: new Date().toISOString(),
     }
 
-    // Add to servers and remove from applications
-    servers.push(newServer)
-    applications.splice(applicationIndex, 1)
+    // Add optional fields if they exist
+    if (application.ownerName) {
+      insertData.owner_name = application.ownerName
+    }
 
+    // Try to add status if column exists
     try {
-      // Sync with website storage (with Discord API integration)
-      await websiteStorage.addServerToWebsite(newServer)
-    } catch (error) {
-      console.error("Error syncing approved server with website storage:", error)
+      insertData.status = "pending"
+    } catch (e) {
+      // Status column might not exist yet
     }
 
-    console.log("Application approved and moved to servers")
-    console.log("New server:", newServer)
-    console.log("Remaining applications:", applications.length)
-    console.log("Total servers:", servers.length)
-    console.log("Total servers on website:", websiteStorage.getTotalServers())
+    const { error } = await supabase.from("applications").insert(insertData)
 
-    return true
+    if (error) {
+      console.error("Error adding application:", error)
+      throw new Error(`Failed to add application: ${error.message}`)
+    }
+
+    console.log("Application added successfully to Supabase")
+  } catch (error) {
+    console.error("Error in addApplication:", error)
+    throw error
   }
-  console.log("Invalid application index for approval:", applicationIndex)
-  return false
 }
 
-// Get total stats (now uses website storage with Discord API data)
-export function getStats() {
-  return websiteStorage.getWebsiteStats()
+export async function removeApplication(index: number): Promise<void> {
+  try {
+    console.log("Removing application at index:", index)
+
+    // Get all applications to find the one at the index
+    const { data: applications, error: fetchError } = await supabase
+      .from("applications")
+      .select("*")
+      .order("created_at", { ascending: false })
+
+    if (fetchError) {
+      console.error("Error fetching applications for removal:", fetchError)
+      throw new Error(`Failed to fetch applications: ${fetchError.message}`)
+    }
+
+    if (!applications || applications.length === 0) {
+      throw new Error("No applications found")
+    }
+
+    if (index < 0 || index >= applications.length) {
+      throw new Error(`Invalid index: ${index}. Available applications: ${applications.length}`)
+    }
+
+    const applicationToDelete = applications[index]
+
+    const { error } = await supabase.from("applications").delete().eq("id", applicationToDelete.id)
+
+    if (error) {
+      console.error("Error removing application:", error)
+      throw new Error(`Failed to remove application: ${error.message}`)
+    }
+
+    console.log("Application removed successfully from Supabase")
+  } catch (error) {
+    console.error("Error in removeApplication:", error)
+    throw error
+  }
+}
+
+export async function addServer(server: Server): Promise<void> {
+  try {
+    console.log("Adding server to Supabase:", server)
+
+    const { error } = await supabase.from("servers").insert({
+      name: server.name,
+      description: server.description,
+      members: server.members,
+      invite: server.invite,
+      logo: server.logo,
+      verified: server.verified || false,
+      tags: server.tags || [],
+      representative_discord_id: server.representativeDiscordId,
+      created_at: new Date().toISOString(),
+    })
+
+    if (error) {
+      console.error("Error adding server:", error)
+      throw new Error(`Failed to add server: ${error.message}`)
+    }
+
+    console.log("Server added successfully to Supabase")
+  } catch (error) {
+    console.error("Error in addServer:", error)
+    throw error
+  }
+}
+
+export async function removeServer(index: number): Promise<void> {
+  try {
+    console.log("Removing server at index:", index)
+
+    // Get all servers to find the one at the index
+    const { data: servers, error: fetchError } = await supabase
+      .from("servers")
+      .select("*")
+      .order("created_at", { ascending: false })
+
+    if (fetchError) {
+      console.error("Error fetching servers for removal:", fetchError)
+      throw new Error(`Failed to fetch servers: ${fetchError.message}`)
+    }
+
+    if (!servers || servers.length === 0) {
+      throw new Error("No servers found")
+    }
+
+    if (index < 0 || index >= servers.length) {
+      console.error(`Invalid server index: ${index}. Available servers: ${servers.length}`)
+      console.error(
+        "Available servers:",
+        servers.map((s, i) => `${i}: ${s.name}`),
+      )
+      throw new Error(`Invalid index: ${index}. Available servers: ${servers.length}`)
+    }
+
+    const serverToDelete = servers[index]
+    console.log(`Deleting server: ${serverToDelete.name} (ID: ${serverToDelete.id})`)
+
+    const { error } = await supabase.from("servers").delete().eq("id", serverToDelete.id)
+
+    if (error) {
+      console.error("Error removing server:", error)
+      throw new Error(`Failed to remove server: ${error.message}`)
+    }
+
+    console.log("Server removed successfully from Supabase")
+  } catch (error) {
+    console.error("Error in removeServer:", error)
+    throw error
+  }
+}
+
+export async function updateServer(index: number, server: Server): Promise<void> {
+  try {
+    console.log("Updating server at index:", index, server)
+
+    // Get all servers to find the one at the index
+    const { data: servers, error: fetchError } = await supabase
+      .from("servers")
+      .select("*")
+      .order("created_at", { ascending: false })
+
+    if (fetchError) {
+      console.error("Error fetching servers for update:", fetchError)
+      throw new Error(`Failed to fetch servers: ${fetchError.message}`)
+    }
+
+    if (!servers || servers.length === 0) {
+      throw new Error("No servers found")
+    }
+
+    if (index < 0 || index >= servers.length) {
+      throw new Error(`Invalid index: ${index}. Available servers: ${servers.length}`)
+    }
+
+    const serverToUpdate = servers[index]
+
+    const { error } = await supabase
+      .from("servers")
+      .update({
+        name: server.name,
+        description: server.description,
+        members: server.members,
+        invite: server.invite,
+        logo: server.logo,
+        verified: server.verified || false,
+        tags: server.tags || [],
+        representative_discord_id: server.representativeDiscordId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", serverToUpdate.id)
+
+    if (error) {
+      console.error("Error updating server:", error)
+      throw new Error(`Failed to update server: ${error.message}`)
+    }
+
+    console.log("Server updated successfully in Supabase")
+  } catch (error) {
+    console.error("Error in updateServer:", error)
+    throw error
+  }
+}
+
+export async function approveApplication(index: number): Promise<void> {
+  try {
+    console.log("Approving application at index:", index)
+
+    // Get all applications
+    const { data: applications, error: fetchError } = await supabase
+      .from("applications")
+      .select("*")
+      .order("created_at", { ascending: false })
+
+    if (fetchError) {
+      console.error("Error fetching applications for approval:", fetchError)
+      throw new Error(`Failed to fetch applications: ${fetchError.message}`)
+    }
+
+    if (!applications || applications.length === 0) {
+      throw new Error("No applications found")
+    }
+
+    if (index < 0 || index >= applications.length) {
+      throw new Error(`Invalid index: ${index}. Available applications: ${applications.length}`)
+    }
+
+    const applicationToApprove = applications[index]
+
+    // Add to servers table
+    const { error: addError } = await supabase.from("servers").insert({
+      name: applicationToApprove.name,
+      description: applicationToApprove.description,
+      members: applicationToApprove.members,
+      invite: applicationToApprove.invite,
+      logo: applicationToApprove.logo,
+      verified: false,
+      tags: ["Partner"],
+      representative_discord_id: applicationToApprove.representative_discord_id,
+    })
+
+    if (addError) {
+      console.error("Error adding approved server:", addError)
+      throw new Error(`Failed to add approved server: ${addError.message}`)
+    }
+
+    // Try to update application status if column exists
+    try {
+      const { error: updateError } = await supabase
+        .from("applications")
+        .update({
+          status: "approved",
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", applicationToApprove.id)
+
+      if (updateError) {
+        console.log("Status column might not exist, deleting application instead")
+        // If status update fails, delete the application
+        await supabase.from("applications").delete().eq("id", applicationToApprove.id)
+      }
+    } catch (e) {
+      // If status column doesn't exist, delete the application
+      await supabase.from("applications").delete().eq("id", applicationToApprove.id)
+    }
+
+    console.log("Application approved successfully")
+  } catch (error) {
+    console.error("Error in approveApplication:", error)
+    throw error
+  }
+}
+
+export async function rejectApplication(index: number): Promise<void> {
+  try {
+    console.log("Rejecting application at index:", index)
+
+    // Get all applications
+    const { data: applications, error: fetchError } = await supabase
+      .from("applications")
+      .select("*")
+      .order("created_at", { ascending: false })
+
+    if (fetchError) {
+      console.error("Error fetching applications for rejection:", fetchError)
+      throw new Error(`Failed to fetch applications: ${fetchError.message}`)
+    }
+
+    if (!applications || applications.length === 0) {
+      throw new Error("No applications found")
+    }
+
+    if (index < 0 || index >= applications.length) {
+      throw new Error(`Invalid index: ${index}. Available applications: ${applications.length}`)
+    }
+
+    const applicationToReject = applications[index]
+
+    // Try to update application status if column exists
+    try {
+      const { error } = await supabase
+        .from("applications")
+        .update({
+          status: "rejected",
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", applicationToReject.id)
+
+      if (error) {
+        console.log("Status column might not exist, deleting application instead")
+        // If status update fails, delete the application
+        await supabase.from("applications").delete().eq("id", applicationToReject.id)
+      }
+    } catch (e) {
+      // If status column doesn't exist, delete the application
+      await supabase.from("applications").delete().eq("id", applicationToReject.id)
+    }
+
+    console.log("Application rejected successfully")
+  } catch (error) {
+    console.error("Error in rejectApplication:", error)
+    throw error
+  }
+}
+
+// Get total stats from Supabase
+export async function getStats() {
+  try {
+    const { data, error } = await supabase
+      .from("manual_stats")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error) {
+      console.error("Error fetching stats:", error)
+      return {
+        totalServers: 1,
+        totalMembers: 250,
+        securityScore: 100,
+        lastUpdated: new Date().toISOString(),
+      }
+    }
+
+    return {
+      totalServers: data.total_servers,
+      totalMembers: data.total_members,
+      securityScore: data.security_score,
+      lastUpdated: data.updated_at,
+    }
+  } catch (error) {
+    console.error("Error in getStats:", error)
+    return {
+      totalServers: 1,
+      totalMembers: 250,
+      securityScore: 100,
+      lastUpdated: new Date().toISOString(),
+    }
+  }
+}
+
+export async function approveApplicationToServer(index: number): Promise<boolean> {
+  try {
+    await approveApplication(index)
+    return true
+  } catch (error) {
+    console.error("Error in approveApplicationToServer:", error)
+    return false
+  }
+}
+
+// Debug function
+export async function debugDataStore(): Promise<void> {
+  try {
+    console.log("=== DATA STORE DEBUG ===")
+
+    const servers = await getServersData()
+    const applications = await getApplicationsData()
+
+    console.log("Current servers:", servers.length)
+    servers.forEach((server, index) => {
+      console.log(`  ${index}: ${server.name} (${server.members} members)`)
+    })
+
+    console.log("Current applications:", applications.length)
+    applications.forEach((app, index) => {
+      console.log(`  ${index}: ${app.name} (${app.status || "no status"})`)
+    })
+
+    console.log("=== END DEBUG ===")
+  } catch (error) {
+    console.error("Error in debugDataStore:", error)
+  }
 }

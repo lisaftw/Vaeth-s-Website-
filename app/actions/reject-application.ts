@@ -1,56 +1,39 @@
 "use server"
 
-import { removeApplication, getApplicationsData } from "@/lib/data-store"
-import { sendApprovalWebhook } from "@/lib/discord-webhook"
+import { removeApplication } from "@/lib/data-store"
 
 export async function rejectApplication(formData: FormData) {
   try {
+    console.log("Reject application action called")
+
     const index = Number.parseInt(formData.get("index") as string)
+    console.log("Rejecting application at index:", index)
 
     if (isNaN(index) || index < 0) {
       return {
         success: false,
-        error: "Invalid application index",
+        message: "Invalid application index",
       }
     }
 
-    // Get the application before rejecting to send webhook
-    const applications = getApplicationsData()
-    const application = applications[index]
+    const removedApplication = await removeApplication(index)
 
-    if (!application) {
+    if (removedApplication) {
+      return {
+        success: true,
+        message: `Application for "${removedApplication.name}" has been rejected and removed.`,
+      }
+    } else {
       return {
         success: false,
-        error: "Application not found",
+        message: "Failed to reject application",
       }
-    }
-
-    // Remove the application
-    const removedApplication = removeApplication(index)
-
-    if (!removedApplication) {
-      return {
-        success: false,
-        error: "Failed to reject application",
-      }
-    }
-
-    // Send Discord notification
-    try {
-      await sendApprovalWebhook(application.name, false)
-    } catch (webhookError) {
-      console.error("Discord webhook failed:", webhookError)
-    }
-
-    return {
-      success: true,
-      message: `${application.name} has been rejected.`,
     }
   } catch (error) {
-    console.error("Error rejecting application:", error)
+    console.error("Error in rejectApplication:", error)
     return {
       success: false,
-      error: "Failed to reject application",
+      message: "Error rejecting application: " + String(error),
     }
   }
 }

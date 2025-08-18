@@ -42,9 +42,9 @@ export async function submitApplication(formData: FormData) {
 
     console.log("Application object created:", application)
 
-    // Add to data store
-    addApplication(application)
-    console.log("Application added to data store")
+    // Add to Supabase
+    await addApplication(application)
+    console.log("Application added to Supabase")
 
     // Send Discord webhook
     try {

@@ -29,8 +29,7 @@ export function StatsDashboard() {
     setError(null)
 
     try {
-      console.log("=== FETCHING STATS FROM API ===")
-      console.log("Making request to /api/stats...")
+      console.log("Fetching stats from API...")
 
       const response = await fetch("/api/stats", {
         method: "GET",
@@ -41,48 +40,36 @@ export function StatsDashboard() {
         },
       })
 
-      console.log("Response status:", response.status)
-      console.log("Response ok:", response.ok)
-
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error("API response not ok:", response.status, errorText)
-        throw new Error(`HTTP ${response.status}: ${errorText}`)
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
       const data = await response.json()
       console.log("Received stats data:", data)
 
-      // Update stats, using fallbacks for any missing data
-      const newStats: StatsData = {
+      if (data.error) {
+        console.warn("API returned error:", data.error)
+        setError(data.error)
+      }
+
+      setStats({
         totalServers: data.totalServers || 1,
         totalMembers: data.totalMembers || 250,
         securityScore: data.securityScore || 100,
         lastUpdated: data.lastUpdated || new Date().toISOString(),
         error: data.error,
-      }
+      })
+    } catch (error) {
+      console.error("Error fetching stats:", error)
+      setError(`Failed to fetch stats: ${error instanceof Error ? error.message : "Unknown error"}`)
 
-      console.log("Setting new stats:", newStats)
-      setStats(newStats)
-
-      if (data.error) {
-        console.warn("API returned with error:", data.error)
-        setError(`API Warning: ${data.error}`)
-      }
-    } catch (fetchError) {
-      console.error("=== FETCH STATS ERROR ===")
-      console.error("Error fetching stats:", fetchError)
-      console.error("Error type:", typeof fetchError)
-      console.error("Error message:", fetchError instanceof Error ? fetchError.message : String(fetchError))
-
-      const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError)
-      setError(`Failed to fetch stats: ${errorMessage}`)
-
-      // Keep existing stats on error, don't reset them
-      console.log("Keeping existing stats due to error")
+      // Keep existing stats on error, just update the error state
+      setStats((prev) => ({
+        ...prev,
+        error: `Failed to fetch stats: ${error instanceof Error ? error.message : "Unknown error"}`,
+      }))
     } finally {
       setIsLoading(false)
-      console.log("=== FETCH STATS COMPLETE ===")
     }
   }
 
@@ -90,16 +77,13 @@ export function StatsDashboard() {
     console.log("StatsDashboard mounted, fetching initial stats...")
     fetchStats()
 
-    // Refresh stats every 60 seconds (increased from 30 to reduce load)
+    // Refresh stats every 30 seconds
     const interval = setInterval(() => {
       console.log("Auto-refreshing stats...")
       fetchStats()
-    }, 60000)
+    }, 30000)
 
-    return () => {
-      console.log("StatsDashboard unmounting, clearing interval")
-      clearInterval(interval)
-    }
+    return () => clearInterval(interval)
   }, [])
 
   const statsConfig = [
@@ -148,7 +132,7 @@ export function StatsDashboard() {
             <p className="text-gray-500 text-sm mt-2">Last updated: {new Date(stats.lastUpdated).toLocaleString()}</p>
           )}
           {error && (
-            <p className="text-yellow-500 text-sm mt-2 bg-yellow-500/10 px-4 py-2 rounded-lg inline-block">⚠️ {error}</p>
+            <p className="text-red-400 text-sm mt-2 bg-red-950/20 px-4 py-2 rounded-lg inline-block">⚠️ {error}</p>
           )}
         </div>
 
@@ -194,18 +178,6 @@ export function StatsDashboard() {
             </Card>
           ))}
         </div>
-
-        {/* Debug info (only in development) */}
-        {process.env.NODE_ENV === "development" && (
-          <div className="mt-8 text-center">
-            <details className="text-gray-500 text-xs">
-              <summary className="cursor-pointer hover:text-gray-400">Debug Info</summary>
-              <pre className="mt-2 text-left bg-gray-900 p-4 rounded-lg overflow-auto">
-                {JSON.stringify({ stats, isLoading, error }, null, 2)}
-              </pre>
-            </details>
-          </div>
-        )}
       </div>
     </section>
   )

@@ -7,19 +7,27 @@ export async function POST(request: NextRequest) {
 
     // Handle different types of webhook updates
     if (body.type === "stats_update") {
-      updateManualStats({
+      const success = await updateManualStats({
         totalServers: body.totalServers,
         totalMembers: body.totalMembers,
         securityScore: body.securityScore,
       })
 
-      return NextResponse.json({ success: true, message: "Stats updated via webhook" })
+      if (success) {
+        return NextResponse.json({ success: true, message: "Stats updated via webhook" })
+      } else {
+        return NextResponse.json({ success: false, error: "Failed to update stats" }, { status: 500 })
+      }
     }
 
     if (body.type === "server_member_update") {
-      updateServerMemberCount(body.serverName, body.memberCount)
+      const success = await updateServerMemberCount(body.serverName, body.memberCount)
 
-      return NextResponse.json({ success: true, message: "Server member count updated via webhook" })
+      if (success) {
+        return NextResponse.json({ success: true, message: "Server member count updated via webhook" })
+      } else {
+        return NextResponse.json({ success: false, error: "Failed to update server member count" }, { status: 500 })
+      }
     }
 
     // Default response for other webhook types
