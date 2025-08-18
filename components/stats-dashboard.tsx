@@ -9,47 +9,80 @@ interface StatsData {
   totalMembers: number
   securityScore: number
   lastUpdated: string
+  error?: string
 }
 
 export function StatsDashboard() {
   const [stats, setStats] = useState<StatsData>({
     totalServers: 1,
-    totalMembers: 250, // Updated default
+    totalMembers: 250,
     securityScore: 100,
     lastUpdated: new Date().toISOString(),
   })
 
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Function to fetch updated stats
   const fetchStats = async () => {
     setIsLoading(true)
+    setError(null)
+
     try {
-      console.log("Fetching stats from API...")
+      console.log("=== FETCHING STATS FROM API ===")
+      console.log("Making request to /api/stats...")
+
       const response = await fetch("/api/stats", {
+        method: "GET",
         cache: "no-store",
         headers: {
           "Cache-Control": "no-cache",
+          Pragma: "no-cache",
         },
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        console.log("Received stats data:", data)
+      console.log("Response status:", response.status)
+      console.log("Response ok:", response.ok)
 
-        setStats({
-          totalServers: data.totalServers || 1,
-          totalMembers: data.totalMembers || 250,
-          securityScore: data.securityScore || 100,
-          lastUpdated: data.lastUpdated || new Date().toISOString(),
-        })
-      } else {
-        console.error("Failed to fetch stats:", response.status, response.statusText)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("API response not ok:", response.status, errorText)
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
       }
-    } catch (error) {
-      console.error("Error fetching stats:", error)
+
+      const data = await response.json()
+      console.log("Received stats data:", data)
+
+      // Update stats, using fallbacks for any missing data
+      const newStats: StatsData = {
+        totalServers: data.totalServers || 1,
+        totalMembers: data.totalMembers || 250,
+        securityScore: data.securityScore || 100,
+        lastUpdated: data.lastUpdated || new Date().toISOString(),
+        error: data.error,
+      }
+
+      console.log("Setting new stats:", newStats)
+      setStats(newStats)
+
+      if (data.error) {
+        console.warn("API returned with error:", data.error)
+        setError(`API Warning: ${data.error}`)
+      }
+    } catch (fetchError) {
+      console.error("=== FETCH STATS ERROR ===")
+      console.error("Error fetching stats:", fetchError)
+      console.error("Error type:", typeof fetchError)
+      console.error("Error message:", fetchError instanceof Error ? fetchError.message : String(fetchError))
+
+      const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError)
+      setError(`Failed to fetch stats: ${errorMessage}`)
+
+      // Keep existing stats on error, don't reset them
+      console.log("Keeping existing stats due to error")
     } finally {
       setIsLoading(false)
+      console.log("=== FETCH STATS COMPLETE ===")
     }
   }
 
@@ -57,13 +90,16 @@ export function StatsDashboard() {
     console.log("StatsDashboard mounted, fetching initial stats...")
     fetchStats()
 
-    // Refresh stats every 30 seconds
+    // Refresh stats every 60 seconds (increased from 30 to reduce load)
     const interval = setInterval(() => {
       console.log("Auto-refreshing stats...")
       fetchStats()
-    }, 30000)
+    }, 60000)
 
-    return () => clearInterval(interval)
+    return () => {
+      console.log("StatsDashboard unmounting, clearing interval")
+      clearInterval(interval)
+    }
   }, [])
 
   const statsConfig = [
@@ -111,6 +147,9 @@ export function StatsDashboard() {
           {stats.lastUpdated && (
             <p className="text-gray-500 text-sm mt-2">Last updated: {new Date(stats.lastUpdated).toLocaleString()}</p>
           )}
+          {error && (
+            <p className="text-yellow-500 text-sm mt-2 bg-yellow-500/10 px-4 py-2 rounded-lg inline-block">⚠️ {error}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
@@ -155,6 +194,18 @@ export function StatsDashboard() {
             </Card>
           ))}
         </div>
+
+        {/* Debug info (only in development) */}
+        {process.env.NODE_ENV === "development" && (
+          <div className="mt-8 text-center">
+            <details className="text-gray-500 text-xs">
+              <summary className="cursor-pointer hover:text-gray-400">Debug Info</summary>
+              <pre className="mt-2 text-left bg-gray-900 p-4 rounded-lg overflow-auto">
+                {JSON.stringify({ stats, isLoading, error }, null, 2)}
+              </pre>
+            </details>
+          </div>
+        )}
       </div>
     </section>
   )

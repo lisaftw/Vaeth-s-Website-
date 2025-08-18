@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { Suspense } from "react"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -9,9 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { verifyPassword } from "../actions/verify-password"
-import AdminContent from "./admin-content"
 import { ModernLogo } from "@/components/modern-logo"
 import { Shield, Crown, Lock } from "lucide-react"
+import AdminContent from "./AdminContent" // Declare the AdminContent variable
 
 const ADMIN_PASSWORD = "unified2024"
 
@@ -119,7 +119,20 @@ export default function AdminPage() {
   }
 
   if (isAuthenticated) {
-    return <AdminContent />
+    return (
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-black text-white flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-500 mx-auto mb-4"></div>
+              <p className="text-gray-400">Loading admin panel...</p>
+            </div>
+          </div>
+        }
+      >
+        <AdminContent />
+      </Suspense>
+    )
   }
 
   return (

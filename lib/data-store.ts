@@ -30,17 +30,21 @@ const servers: Server[] = []
 
 // Data access functions
 export function getApplicationsData(): Application[] {
+  console.log("=== GET APPLICATIONS DATA ===")
   console.log("Getting applications data, current count:", applications.length)
   console.log("Applications:", applications)
   return [...applications] // Return a copy
 }
 
 export function getServersData(): Server[] {
+  console.log("=== GET SERVERS DATA ===")
   console.log("Getting servers data, current count:", servers.length)
+  console.log("Servers:", servers)
   return [...servers] // Return a copy
 }
 
 export function addApplication(application: Application): void {
+  console.log("=== ADD APPLICATION ===")
   console.log("Adding application to data store:", application)
   applications.push(application)
   console.log("Applications array after adding:", applications)
@@ -48,6 +52,7 @@ export function addApplication(application: Application): void {
 }
 
 export function removeApplication(index: number): Application | null {
+  console.log("=== REMOVE APPLICATION ===")
   console.log("Removing application at index:", index)
   if (index >= 0 && index < applications.length) {
     const removed = applications.splice(index, 1)[0]
@@ -59,17 +64,33 @@ export function removeApplication(index: number): Application | null {
 }
 
 export async function addServer(server: Server): Promise<void> {
+  console.log("=== ADD SERVER TO DATA STORE ===")
   console.log("Adding server to data store:", server)
+  console.log("Current servers count before adding:", servers.length)
+
   servers.push(server)
 
-  // Sync with website storage (with Discord API integration)
-  await websiteStorage.addServerToWebsite(server)
+  console.log("Server added to local array")
+  console.log("Current servers count after adding:", servers.length)
+  console.log("Updated servers array:", servers)
+
+  try {
+    // Sync with website storage (with Discord API integration)
+    console.log("Syncing with website storage...")
+    await websiteStorage.addServerToWebsite(server)
+    console.log("Website storage sync completed")
+  } catch (error) {
+    console.error("Error syncing with website storage:", error)
+    // Don't fail the operation if website sync fails
+  }
 
   console.log("Total servers now:", servers.length)
   console.log("Total servers on website:", websiteStorage.getTotalServers())
+  console.log("=== ADD SERVER TO DATA STORE COMPLETE ===")
 }
 
 export function removeServer(index: number): Server | null {
+  console.log("=== REMOVE SERVER ===")
   console.log("Removing server at index:", index)
   if (index >= 0 && index < servers.length) {
     const removed = servers.splice(index, 1)[0]
@@ -85,6 +106,7 @@ export function removeServer(index: number): Server | null {
 }
 
 export async function approveApplicationToServer(applicationIndex: number): Promise<boolean> {
+  console.log("=== APPROVE APPLICATION ===")
   console.log("Approving application at index:", applicationIndex)
   if (applicationIndex >= 0 && applicationIndex < applications.length) {
     const application = applications[applicationIndex]
@@ -107,8 +129,12 @@ export async function approveApplicationToServer(applicationIndex: number): Prom
     servers.push(newServer)
     applications.splice(applicationIndex, 1)
 
-    // Sync with website storage (with Discord API integration)
-    await websiteStorage.addServerToWebsite(newServer)
+    try {
+      // Sync with website storage (with Discord API integration)
+      await websiteStorage.addServerToWebsite(newServer)
+    } catch (error) {
+      console.error("Error syncing approved server with website storage:", error)
+    }
 
     console.log("Application approved and moved to servers")
     console.log("New server:", newServer)
