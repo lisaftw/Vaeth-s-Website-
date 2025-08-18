@@ -9,6 +9,10 @@ import { TypingAnimation } from "@/components/typing-animation"
 import { ModernLogo } from "@/components/modern-logo"
 import { MobileNavigation } from "@/components/mobile-navigation"
 
+// Disable caching for this page to ensure fresh data
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export default async function HomePage() {
   // Get all servers including main server with Discord API data (await the async call)
   let allServers: any[] = []

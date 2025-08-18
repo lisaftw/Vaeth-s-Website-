@@ -9,11 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error("NEXT_PUBLIC_SUPABASE_ANON_KEY:", supabaseAnonKey ? "Set" : "Missing")
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false,
-  },
-})
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Database types
 export interface Database {
@@ -178,13 +174,13 @@ export async function testSupabaseConnection() {
 
     if (error) {
       console.error("Supabase connection test failed:", error)
-      return false
+      return { success: false, error: error.message }
     }
 
     console.log("Supabase connection successful. Server count:", data)
-    return true
+    return { success: true, count: data }
   } catch (error) {
     console.error("Supabase connection test error:", error)
-    return false
+    return { success: false, error: String(error) }
   }
 }

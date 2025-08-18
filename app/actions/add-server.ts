@@ -1,66 +1,54 @@
 "use server"
 
-import { addServer as addServerToStore, debugDataStore } from "@/lib/data-store"
-import { addServerToMemberCounts } from "@/lib/manual-stats"
+import { addServer as addServerToStore } from "@/lib/data-store"
+import { revalidatePath } from "next/cache"
 
 export async function addServer(formData: FormData) {
   try {
-    console.log("=== ADD SERVER ACTION STARTED ===")
+    console.log("Add server action called")
 
-    const serverData = {
-      name: formData.get("name") as string,
-      description: formData.get("description") as string,
-      members: Number.parseInt(formData.get("members") as string) || 0,
-      invite: formData.get("invite") as string,
-      logo: formData.get("logo") as string,
-      verified: formData.get("verified") === "on",
-      dateAdded: new Date().toISOString(),
-      tags: formData.get("tags")
-        ? (formData.get("tags") as string)
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean)
-        : [],
-      representativeDiscordId: formData.get("representativeDiscordId") as string,
-    }
+    const name = formData.get("name") as string
+    const description = formData.get("description") as string
+    const members = Number.parseInt(formData.get("members") as string)
+    const invite = formData.get("invite") as string
+    const logo = formData.get("logo") as string
 
-    console.log("Server data to add:", serverData)
-
-    // Validate required fields
-    if (!serverData.name || !serverData.description || !serverData.members || !serverData.invite) {
-      console.log("Validation failed - missing required fields")
+    if (!name || !description || !members || !invite) {
       return {
         success: false,
-        error: "Please fill in all required fields",
+        error: "All fields except logo are required",
       }
     }
 
-    console.log("Validation passed, adding server to Supabase...")
+    const server = {
+      name,
+      description,
+      members,
+      invite,
+      logo: logo || undefined,
+      verified: false,
+      tags: ["Partner"],
+    }
 
-    // Add to Supabase
-    await addServerToStore(serverData)
+    console.log("Adding server:", server)
 
-    console.log("Server added to Supabase, updating manual stats...")
+    await addServerToStore(server)
 
-    // Add to manual stats tracking
-    await addServerToMemberCounts(serverData.name, serverData.members)
+    // Invalidate cache for homepage and admin pages
+    revalidatePath("/")
+    revalidatePath("/admin")
 
-    console.log("Manual stats updated")
-
-    // Debug the current state
-    await debugDataStore()
-
-    console.log("=== ADD SERVER ACTION COMPLETED ===")
+    console.log("Server added and cache invalidated")
 
     return {
       success: true,
-      message: `${serverData.name} has been added to the alliance!`,
+      message: "Server has been added successfully to the alliance.",
     }
   } catch (error) {
-    console.error("Error adding server:", error)
+    console.error("Error in addServer action:", error)
     return {
       success: false,
-      error: "Failed to add server: " + String(error),
+      error: error instanceof Error ? error.message : "Error adding server",
     }
   }
 }

@@ -1,6 +1,7 @@
 "use server"
 
 import { removeServer as removeServerFromStore } from "@/lib/data-store"
+import { revalidatePath } from "next/cache"
 
 export async function removeServer(formData: FormData) {
   try {
@@ -17,6 +18,12 @@ export async function removeServer(formData: FormData) {
     }
 
     await removeServerFromStore(index)
+
+    // Invalidate cache for homepage and admin pages
+    revalidatePath("/")
+    revalidatePath("/admin")
+
+    console.log("Server removed and cache invalidated")
 
     return {
       success: true,
