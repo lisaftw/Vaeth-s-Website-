@@ -1,22 +1,69 @@
+"use server"
+
 import { supabase } from "./supabase"
 
 export interface ManualStats {
   totalServers: number
   totalMembers: number
   securityScore: number
-  lastUpdated: string
 }
 
-export interface ServerMemberCount {
-  serverName: string
-  memberCount: number
-  lastUpdated: string
+export async function updateManualStats(stats: ManualStats): Promise<void> {
+  try {
+    console.log("=== UPDATING MANUAL STATS ===")
+    console.log("Stats to update:", stats)
+
+    // First, try to get existing stats
+    const { data: existingStats, error: fetchError } = await supabase
+      .from("manual_stats")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .single()
+
+    console.log("Existing stats:", existingStats)
+    console.log("Fetch error:", fetchError)
+
+    const updateData = {
+      total_servers: stats.totalServers,
+      total_members: stats.totalMembers,
+      security_score: stats.securityScore,
+      updated_at: new Date().toISOString(),
+    }
+
+    if (existingStats && !fetchError) {
+      // Update existing record
+      console.log("Updating existing stats record")
+      const { error: updateError } = await supabase.from("manual_stats").update(updateData).eq("id", existingStats.id)
+
+      if (updateError) {
+        console.error("Error updating stats:", updateError)
+        throw new Error(`Failed to update stats: ${updateError.message}`)
+      }
+    } else {
+      // Insert new record
+      console.log("Inserting new stats record")
+      const { error: insertError } = await supabase.from("manual_stats").insert({
+        ...updateData,
+        created_at: new Date().toISOString(),
+      })
+
+      if (insertError) {
+        console.error("Error inserting stats:", insertError)
+        throw new Error(`Failed to insert stats: ${insertError.message}`)
+      }
+    }
+
+    console.log("Manual stats updated successfully")
+    console.log("=== END UPDATE MANUAL STATS ===")
+  } catch (error) {
+    console.error("Error in updateManualStats:", error)
+    throw error
+  }
 }
 
 export async function getManualStats(): Promise<ManualStats> {
   try {
-    console.log("Fetching manual stats from Supabase...")
-
     const { data, error } = await supabase
       .from("manual_stats")
       .select("*")
@@ -24,133 +71,26 @@ export async function getManualStats(): Promise<ManualStats> {
       .limit(1)
       .single()
 
-    if (error) {
-      console.error("Error fetching manual stats:", error)
+    if (error || !data) {
+      console.log("No manual stats found, returning defaults")
       return {
         totalServers: 1,
         totalMembers: 250,
         securityScore: 100,
-        lastUpdated: new Date().toISOString(),
       }
     }
-
-    console.log("Retrieved manual stats:", data)
 
     return {
       totalServers: data.total_servers,
       totalMembers: data.total_members,
       securityScore: data.security_score,
-      lastUpdated: data.updated_at,
     }
   } catch (error) {
-    console.error("Error in getManualStats:", error)
+    console.error("Error getting manual stats:", error)
     return {
       totalServers: 1,
       totalMembers: 250,
       securityScore: 100,
-      lastUpdated: new Date().toISOString(),
     }
-  }
-}
-
-export async function updateManualStats(stats: Omit<ManualStats, "lastUpdated">): Promise<void> {
-  try {
-    console.log("Updating manual stats in Supabase:", stats)
-
-    // First, try to get existing record
-    const { data: existing } = await supabase.from("manual_stats").select("id").limit(1).single()
-
-    const statsData = {
-      total_servers: stats.totalServers,
-      total_members: stats.totalMembers,
-      security_score: stats.securityScore,
-      updated_at: new Date().toISOString(),
-    }
-
-    let result
-    if (existing) {
-      // Update existing record
-      result = await supabase.from("manual_stats").update(statsData).eq("id", existing.id)
-    } else {
-      // Insert new record
-      result = await supabase.from("manual_stats").insert(statsData)
-    }
-
-    if (result.error) {
-      console.error("Error updating manual stats:", result.error)
-      throw new Error(`Failed to update stats: ${result.error.message}`)
-    }
-
-    console.log("Manual stats updated successfully:", result.data)
-  } catch (error) {
-    console.error("Error in updateManualStats:", error)
-    throw error
-  }
-}
-
-export async function getServerMemberCounts(): Promise<ServerMemberCount[]> {
-  try {
-    const { data, error } = await supabase
-      .from("server_member_counts")
-      .select("*")
-      .order("updated_at", { ascending: false })
-
-    if (error) {
-      console.error("Error fetching server member counts:", error)
-      return []
-    }
-
-    return (
-      data?.map((row) => ({
-        serverName: row.server_name,
-        memberCount: row.member_count,
-        lastUpdated: row.updated_at,
-      })) || []
-    )
-  } catch (error) {
-    console.error("Error in getServerMemberCounts:", error)
-    return []
-  }
-}
-
-export async function addServerToMemberCounts(serverName: string, memberCount: number): Promise<void> {
-  try {
-    const { error } = await supabase.from("server_member_counts").upsert({
-      server_name: serverName,
-      member_count: memberCount,
-      updated_at: new Date().toISOString(),
-    })
-
-    if (error) {
-      console.error("Error adding server to member counts:", error)
-      throw new Error(`Failed to add server member count: ${error.message}`)
-    }
-
-    console.log("Server member count added successfully")
-  } catch (error) {
-    console.error("Error in addServerToMemberCounts:", error)
-    throw error
-  }
-}
-
-export async function updateServerMemberCount(serverName: string, memberCount: number): Promise<void> {
-  try {
-    const { error } = await supabase
-      .from("server_member_counts")
-      .update({
-        member_count: memberCount,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("server_name", serverName)
-
-    if (error) {
-      console.error("Error updating server member count:", error)
-      throw new Error(`Failed to update server member count: ${error.message}`)
-    }
-
-    console.log("Server member count updated successfully")
-  } catch (error) {
-    console.error("Error in updateServerMemberCount:", error)
-    throw error
   }
 }

@@ -8,6 +8,12 @@ export async function submitApplication(formData: FormData) {
   try {
     console.log("=== SUBMIT APPLICATION ACTION ===")
 
+    // Log all form data for debugging
+    console.log("All form data entries:")
+    for (const [key, value] of formData.entries()) {
+      console.log(`  ${key}: ${value}`)
+    }
+
     // Extract form data with proper field names
     const name = formData.get("serverName") as string
     const description = formData.get("description") as string

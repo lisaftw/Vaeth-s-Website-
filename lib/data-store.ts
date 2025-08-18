@@ -30,7 +30,9 @@ export interface Server {
 
 // Convert database row to legacy format
 function convertApplicationFromDB(dbApp: any): Application {
-  return {
+  console.log("Converting application from DB:", dbApp)
+
+  const converted = {
     name: dbApp.name,
     description: dbApp.description,
     members: dbApp.members,
@@ -42,6 +44,9 @@ function convertApplicationFromDB(dbApp: any): Application {
     submittedAt: dbApp.created_at,
     reviewedAt: dbApp.reviewed_at,
   }
+
+  console.log("Converted application:", converted)
+  return converted
 }
 
 function convertServerFromDB(dbServer: any): Server {
@@ -63,7 +68,6 @@ export async function getApplicationsData(): Promise<Application[]> {
   try {
     console.log("Fetching applications from Supabase...")
 
-    // First try to get applications with status column
     const { data, error } = await supabase.from("applications").select("*").order("created_at", { ascending: false })
 
     if (error) {
@@ -71,11 +75,21 @@ export async function getApplicationsData(): Promise<Application[]> {
       return []
     }
 
+    console.log("Raw applications data:", data)
+
     // Filter for pending applications (or all if no status column)
     const applications =
       data?.map(convertApplicationFromDB).filter((app) => !app.status || app.status === "pending") || []
 
     console.log("Fetched applications:", applications.length)
+    applications.forEach((app, index) => {
+      console.log(`Application ${index}:`, {
+        name: app.name,
+        representativeDiscordId: app.representativeDiscordId,
+        ownerName: app.ownerName,
+      })
+    })
+
     return applications
   } catch (error) {
     console.error("Error in getApplicationsData:", error)
@@ -122,7 +136,8 @@ export async function getServersData(): Promise<Server[]> {
 
 export async function addApplication(application: Application): Promise<void> {
   try {
-    console.log("Adding application to Supabase:", application)
+    console.log("=== ADDING APPLICATION TO SUPABASE ===")
+    console.log("Application data:", application)
 
     const insertData: any = {
       name: application.name,
@@ -139,10 +154,12 @@ export async function addApplication(application: Application): Promise<void> {
 
     if (application.representativeDiscordId) {
       insertData.representative_discord_id = application.representativeDiscordId
+      console.log("Adding representative_discord_id:", application.representativeDiscordId)
     }
 
     if (application.ownerName) {
       insertData.owner_name = application.ownerName
+      console.log("Adding owner_name:", application.ownerName)
     }
 
     // Try to add status if column exists
@@ -153,7 +170,7 @@ export async function addApplication(application: Application): Promise<void> {
       console.log("Status column might not exist, continuing without it")
     }
 
-    console.log("Insert data:", insertData)
+    console.log("Final insert data:", insertData)
 
     const { data, error } = await supabase.from("applications").insert(insertData).select()
 
@@ -163,6 +180,7 @@ export async function addApplication(application: Application): Promise<void> {
     }
 
     console.log("Application added successfully to Supabase:", data)
+    console.log("=== END ADD APPLICATION ===")
   } catch (error) {
     console.error("Error in addApplication:", error)
     throw error
