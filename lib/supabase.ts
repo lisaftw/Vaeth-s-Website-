@@ -4,10 +4,16 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase environment variables")
+  console.error("Missing Supabase environment variables!")
+  console.error("NEXT_PUBLIC_SUPABASE_URL:", supabaseUrl ? "Set" : "Missing")
+  console.error("NEXT_PUBLIC_SUPABASE_ANON_KEY:", supabaseAnonKey ? "Set" : "Missing")
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+  },
+})
 
 // Database types
 export interface Database {
@@ -161,3 +167,24 @@ export type Application = Database["public"]["Tables"]["applications"]["Row"]
 export type Server = Database["public"]["Tables"]["servers"]["Row"]
 export type ManualStats = Database["public"]["Tables"]["manual_stats"]["Row"]
 export type ServerMemberCount = Database["public"]["Tables"]["server_member_counts"]["Row"]
+
+// Test connection function
+export async function testSupabaseConnection() {
+  try {
+    console.log("Testing Supabase connection...")
+    console.log("URL:", supabaseUrl)
+
+    const { data, error } = await supabase.from("servers").select("count", { count: "exact", head: true })
+
+    if (error) {
+      console.error("Supabase connection test failed:", error)
+      return false
+    }
+
+    console.log("Supabase connection successful. Server count:", data)
+    return true
+  } catch (error) {
+    console.error("Supabase connection test error:", error)
+    return false
+  }
+}

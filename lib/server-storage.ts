@@ -29,11 +29,14 @@ const MAIN_SERVER = {
 
 export async function getWebsiteServers(): Promise<WebsiteServer[]> {
   try {
-    console.log("Getting website servers...")
+    console.log("=== GETTING WEBSITE SERVERS ===")
+    console.log("Environment:", process.env.NODE_ENV)
+    console.log("Timestamp:", new Date().toISOString())
 
     // Get partner servers from database (await the async call)
     const partnerServers = await getServersData()
     console.log("Partner servers from DB:", partnerServers)
+    console.log("Partner servers count:", partnerServers.length)
 
     // Get current stats for main server (await the async call)
     const stats = await getStats()
@@ -45,25 +48,39 @@ export async function getWebsiteServers(): Promise<WebsiteServer[]> {
       members: stats?.totalMembers || MAIN_SERVER.members,
     }
 
+    console.log("Main server config:", mainServer)
+
     // Convert partner servers to website format
     const convertedPartnerServers: WebsiteServer[] = Array.isArray(partnerServers)
-      ? partnerServers.map((server) => ({
-          name: server.name,
-          description: server.description,
-          members: server.members,
-          invite: server.invite,
-          logo: server.logo,
-          verified: server.verified || false,
-          dateAdded: server.dateAdded,
-          tags: server.tags || ["Partner"],
-          isMainServer: false,
-        }))
+      ? partnerServers.map((server, index) => {
+          console.log(`Converting partner server ${index + 1}:`, server)
+          return {
+            name: server.name,
+            description: server.description,
+            members: server.members,
+            invite: server.invite,
+            logo: server.logo,
+            verified: server.verified || false,
+            dateAdded: server.dateAdded,
+            tags: server.tags || ["Partner"],
+            isMainServer: false,
+          }
+        })
       : []
+
+    console.log("Converted partner servers:", convertedPartnerServers)
 
     // Combine main server with partner servers
     const allServers = [mainServer, ...convertedPartnerServers]
 
-    console.log("Final website servers array:", allServers)
+    console.log("Final website servers array:")
+    allServers.forEach((server, index) => {
+      console.log(`  ${index + 1}: ${server.name} (${server.members} members, verified: ${server.verified})`)
+    })
+
+    console.log("Total servers to display:", allServers.length)
+    console.log("=== END GETTING WEBSITE SERVERS ===")
+
     return allServers
   } catch (error) {
     console.error("Error in getWebsiteServers:", error)

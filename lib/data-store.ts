@@ -85,17 +85,34 @@ export async function getApplicationsData(): Promise<Application[]> {
 
 export async function getServersData(): Promise<Server[]> {
   try {
-    console.log("Fetching servers from Supabase...")
+    console.log("=== FETCHING SERVERS FROM SUPABASE ===")
+    console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log("Environment:", process.env.NODE_ENV)
 
     const { data, error } = await supabase.from("servers").select("*").order("created_at", { ascending: false })
 
     if (error) {
-      console.error("Error fetching servers:", error)
+      console.error("Supabase error fetching servers:", error)
       return []
     }
 
+    console.log("Raw server data from Supabase:", data)
+
     const servers = data?.map(convertServerFromDB) || []
-    console.log("Fetched servers:", servers.length)
+    console.log("Converted servers:", servers)
+    console.log("Total servers found:", servers.length)
+
+    // Log each server for debugging
+    servers.forEach((server, index) => {
+      console.log(`Server ${index + 1}:`, {
+        name: server.name,
+        members: server.members,
+        invite: server.invite,
+        verified: server.verified,
+      })
+    })
+
+    console.log("=== END SERVERS FETCH ===")
     return servers
   } catch (error) {
     console.error("Error in getServersData:", error)
@@ -184,9 +201,10 @@ export async function removeApplication(index: number): Promise<void> {
 
 export async function addServer(server: Server): Promise<void> {
   try {
-    console.log("Adding server to Supabase:", server)
+    console.log("=== ADDING SERVER TO SUPABASE ===")
+    console.log("Server data:", server)
 
-    const { error } = await supabase.from("servers").insert({
+    const insertData = {
       name: server.name,
       description: server.description,
       members: server.members,
@@ -196,14 +214,19 @@ export async function addServer(server: Server): Promise<void> {
       tags: server.tags || [],
       representative_discord_id: server.representativeDiscordId,
       created_at: new Date().toISOString(),
-    })
+    }
+
+    console.log("Insert data:", insertData)
+
+    const { data, error } = await supabase.from("servers").insert(insertData).select()
 
     if (error) {
-      console.error("Error adding server:", error)
+      console.error("Supabase error adding server:", error)
       throw new Error(`Failed to add server: ${error.message}`)
     }
 
-    console.log("Server added successfully to Supabase")
+    console.log("Server added successfully to Supabase:", data)
+    console.log("=== END ADD SERVER ===")
   } catch (error) {
     console.error("Error in addServer:", error)
     throw error
