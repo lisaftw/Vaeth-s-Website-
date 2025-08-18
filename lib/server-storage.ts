@@ -27,16 +27,16 @@ const MAIN_SERVER = {
   isMainServer: true,
 }
 
-export function getWebsiteServers(): WebsiteServer[] {
+export async function getWebsiteServers(): Promise<WebsiteServer[]> {
   try {
     console.log("Getting website servers...")
 
-    // Get partner servers from database
-    const partnerServers = getServersData()
+    // Get partner servers from database (await the async call)
+    const partnerServers = await getServersData()
     console.log("Partner servers from DB:", partnerServers)
 
-    // Get current stats for main server
-    const stats = getStats()
+    // Get current stats for main server (await the async call)
+    const stats = await getStats()
     console.log("Stats for main server:", stats)
 
     // Create main server with updated member count
@@ -104,7 +104,7 @@ export async function getPartnerServers(): Promise<WebsiteServer[]> {
 // Helper function to get server count
 export async function getServerCount(): Promise<number> {
   try {
-    const servers = getWebsiteServers()
+    const servers = await getWebsiteServers()
     return Array.isArray(servers) ? servers.length : 1
   } catch (error) {
     console.error("Error getting server count:", error)

@@ -10,9 +10,15 @@ import { ModernLogo } from "@/components/modern-logo"
 import { MobileNavigation } from "@/components/mobile-navigation"
 
 export default async function HomePage() {
-  // Get all servers including main server with Discord API data
-  const allServers = Array.isArray(getWebsiteServers()) ? getWebsiteServers() : []
-  console.log("Homepage allServers:", allServers, "Type:", typeof allServers, "IsArray:", Array.isArray(allServers))
+  // Get all servers including main server with Discord API data (await the async call)
+  let allServers: any[] = []
+  try {
+    allServers = await getWebsiteServers()
+    console.log("Homepage allServers:", allServers, "Length:", allServers.length)
+  } catch (error) {
+    console.error("Error fetching servers on homepage:", error)
+    allServers = []
+  }
 
   const typingTexts = ["Elite Discord Alliance", "Powerful Server Network", "Strategic Partnerships", "Digital Empire"]
 
@@ -217,7 +223,7 @@ export default async function HomePage() {
             ))}
           </div>
 
-          {allServers.length === 1 && (
+          {allServers.length === 0 && (
             <div className="text-center py-12 mt-8">
               <div className="w-24 h-24 bg-gradient-to-br from-red-600/20 to-red-800/20 rounded-full mx-auto mb-8 flex items-center justify-center">
                 <Crown className="w-12 h-12 text-red-500 animate-pulse" />
