@@ -1,24 +1,36 @@
 import { NextResponse } from "next/server"
-import { getManualStats } from "@/lib/manual-stats"
+import { getStats } from "@/lib/data-store"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export async function GET() {
   try {
-    const stats = await getManualStats()
+    console.log("=== STATS API ROUTE ===")
 
-    return NextResponse.json({
+    const stats = await getStats()
+    console.log("Retrieved stats:", stats)
+
+    const response = {
+      success: true,
       totalServers: stats.totalServers,
       totalMembers: stats.totalMembers,
       securityScore: stats.securityScore,
-      lastUpdated: new Date().toISOString(),
-    })
+      lastUpdated: stats.lastUpdated,
+      timestamp: new Date().toISOString(),
+    }
+
+    console.log("Returning stats response:", response)
+    console.log("=== END STATS API ===")
+
+    return NextResponse.json(response)
   } catch (error) {
     console.error("Error in stats API:", error)
     return NextResponse.json(
       {
-        totalServers: 1,
-        totalMembers: 250,
-        securityScore: 100,
-        lastUpdated: new Date().toISOString(),
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
       },
       { status: 500 },
     )

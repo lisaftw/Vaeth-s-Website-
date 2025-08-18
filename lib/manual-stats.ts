@@ -43,10 +43,12 @@ export async function updateManualStats(stats: ManualStats): Promise<void> {
     } else {
       // Insert new record
       console.log("Inserting new stats record")
-      const { error: insertError } = await supabase.from("manual_stats").insert({
+      const insertData = {
         ...updateData,
         created_at: new Date().toISOString(),
-      })
+      }
+
+      const { error: insertError } = await supabase.from("manual_stats").insert(insertData)
 
       if (insertError) {
         console.error("Error inserting stats:", insertError)

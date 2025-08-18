@@ -34,9 +34,9 @@ export async function submitApplication(formData: FormData) {
     })
 
     // Validate required fields
-    if (!name || !description || !memberCountStr || !invite) {
+    if (!name || !description || !memberCountStr || !invite || !ownerName || !representativeDiscordId) {
       console.error("Missing required fields")
-      throw new Error("Missing required fields")
+      throw new Error("All required fields must be filled")
     }
 
     const members = Number.parseInt(memberCountStr, 10)
@@ -52,8 +52,8 @@ export async function submitApplication(formData: FormData) {
       members,
       invite: invite.trim(),
       logo: logo?.trim() || undefined,
-      representativeDiscordId: representativeDiscordId?.trim() || undefined,
-      ownerName: ownerName?.trim() || undefined,
+      representativeDiscordId: representativeDiscordId.trim(),
+      ownerName: ownerName.trim(),
       submittedAt: new Date().toISOString(),
     }
 
@@ -73,10 +73,8 @@ export async function submitApplication(formData: FormData) {
           { name: "Members", value: application.members.toLocaleString(), inline: true },
           { name: "Description", value: application.description },
           { name: "Discord Invite", value: application.invite },
-          ...(application.representativeDiscordId
-            ? [{ name: "Representative ID", value: application.representativeDiscordId, inline: true }]
-            : []),
-          ...(application.ownerName ? [{ name: "Server Owner", value: application.ownerName, inline: true }] : []),
+          { name: "Representative ID", value: application.representativeDiscordId, inline: true },
+          { name: "Server Owner", value: application.ownerName, inline: true },
         ],
         color: 0x00ff00,
       })

@@ -17,8 +17,8 @@ export async function updateManualStatsAction(formData: FormData) {
       throw new Error("Invalid input values")
     }
 
-    if (totalServers < 1 || totalMembers < 1 || securityScore < 0 || securityScore > 100) {
-      throw new Error("Values out of valid range")
+    if (securityScore < 0 || securityScore > 100) {
+      throw new Error("Security score must be between 0 and 100")
     }
 
     await updateManualStats({
@@ -27,7 +27,7 @@ export async function updateManualStatsAction(formData: FormData) {
       securityScore,
     })
 
-    // Clear cache to ensure fresh data
+    // Invalidate cache for pages that use stats
     revalidatePath("/")
     revalidatePath("/admin")
     revalidatePath("/api/stats")
