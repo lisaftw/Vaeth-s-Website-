@@ -274,6 +274,22 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                           </a>
                         </div>
                       </div>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-400">Representative ID:</span>
+                          <span className="text-white ml-2">{app.representativeDiscordId || "Not provided"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Server Owner:</span>
+                          <span className="text-white ml-2">{app.ownerName || "Not provided"}</span>
+                        </div>
+                      </div>
+                      {app.submittedAt && (
+                        <div className="text-sm">
+                          <span className="text-gray-400">Submitted:</span>
+                          <span className="text-white ml-2">{new Date(app.submittedAt).toLocaleDateString()}</span>
+                        </div>
+                      )}
                       <div className="flex space-x-2">
                         <Button
                           onClick={() => handleApproveApplication(index)}

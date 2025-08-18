@@ -1,66 +1,44 @@
-"use server"
-
-interface WebhookData {
-  serverName: string
-  description: string
-  members: number
-  discordInvite: string
-  ownerName: string
-  representativeId: string
+export interface WebhookField {
+  name: string
+  value: string
+  inline?: boolean
 }
 
-export async function sendDiscordWebhook(data: WebhookData) {
-  try {
-    const webhookUrl = process.env.DISCORD_WEBHOOK_URL
+export interface WebhookData {
+  title: string
+  description: string
+  fields?: WebhookField[]
+  color?: number
+  timestamp?: string
+}
 
-    if (!webhookUrl) {
-      console.log("Discord webhook URL not configured, skipping webhook")
-      return
-    }
+export async function sendDiscordWebhook(data: WebhookData): Promise<void> {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL
+
+  if (!webhookUrl) {
+    console.log("Discord webhook URL not configured, skipping webhook")
+    return
+  }
+
+  try {
+    console.log("Sending Discord webhook:", data)
 
     const embed = {
-      title: "🆕 New Server Application",
-      color: 0xff0000,
-      fields: [
-        {
-          name: "Server Name",
-          value: data.serverName,
-          inline: true,
-        },
-        {
-          name: "Members",
-          value: data.members.toString(),
-          inline: true,
-        },
-        {
-          name: "Owner",
-          value: data.ownerName,
-          inline: true,
-        },
-        {
-          name: "Representative",
-          value: data.representativeId,
-          inline: true,
-        },
-        {
-          name: "Description",
-          value: data.description.length > 1024 ? data.description.substring(0, 1021) + "..." : data.description,
-          inline: false,
-        },
-        {
-          name: "Discord Invite",
-          value: data.discordInvite,
-          inline: false,
-        },
-      ],
-      timestamp: new Date().toISOString(),
+      title: data.title,
+      description: data.description,
+      color: data.color || 0x0099ff,
+      fields: data.fields || [],
+      timestamp: data.timestamp || new Date().toISOString(),
+      footer: {
+        text: "Unified Realms Alliance",
+      },
     }
 
     const payload = {
       embeds: [embed],
     }
 
-    console.log("Sending Discord webhook:", payload)
+    console.log("Webhook payload:", JSON.stringify(payload, null, 2))
 
     const response = await fetch(webhookUrl, {
       method: "POST",
@@ -71,12 +49,14 @@ export async function sendDiscordWebhook(data: WebhookData) {
     })
 
     if (!response.ok) {
-      throw new Error(`Discord webhook failed: ${response.status} ${response.statusText}`)
+      const errorText = await response.text()
+      console.error("Discord webhook failed:", response.status, errorText)
+      throw new Error(`Discord webhook failed: ${response.status} ${errorText}`)
     }
 
     console.log("Discord webhook sent successfully")
   } catch (error) {
-    console.error("Discord webhook error:", error)
+    console.error("Error sending Discord webhook:", error)
     throw error
   }
 }
