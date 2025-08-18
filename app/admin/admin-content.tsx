@@ -44,14 +44,32 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [editingServer, setEditingServer] = useState<number | null>(null)
+  const [currentStats, setCurrentStats] = useState({
+    totalServers: 1,
+    totalMembers: 250,
+    securityScore: 100,
+  })
 
   // Load data
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const [appsData, serversData] = await Promise.all([getApplications(), getServers()])
+      const [appsData, serversData, statsResponse] = await Promise.all([
+        getApplications(),
+        getServers(),
+        fetch("/api/stats"),
+      ])
       setApplications(appsData)
       setServers(serversData)
+
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json()
+        setCurrentStats({
+          totalServers: statsData.totalServers,
+          totalMembers: statsData.totalMembers,
+          securityScore: statsData.securityScore,
+        })
+      }
     } catch (error) {
       console.error("Error loading data:", error)
       setMessage("Error loading data")
@@ -159,7 +177,10 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
     setIsLoading(true)
     try {
       const result = await updateManualStatsAction(formData)
-      setMessage(result.success ? result.message : result.error)
+      setMessage(result.success ? result.message : result.message)
+      if (result.success) {
+        await loadData() // Reload data to get updated stats
+      }
     } catch (error) {
       setMessage("Error updating stats")
     } finally {
@@ -550,7 +571,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                       name="totalServers"
                       type="number"
                       min="1"
-                      defaultValue="1"
+                      defaultValue={currentStats.totalServers.toString()}
                       required
                       className="bg-gray-700 border-gray-600 text-white"
                     />
@@ -564,7 +585,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                       name="totalMembers"
                       type="number"
                       min="1"
-                      defaultValue="250"
+                      defaultValue={currentStats.totalMembers.toString()}
                       required
                       className="bg-gray-700 border-gray-600 text-white"
                     />
@@ -579,7 +600,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                       type="number"
                       min="0"
                       max="100"
-                      defaultValue="100"
+                      defaultValue={currentStats.securityScore.toString()}
                       required
                       className="bg-gray-700 border-gray-600 text-white"
                     />

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
 import { getManualStats } from "@/lib/manual-stats"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export async function GET() {
   try {
     console.log("Stats API called - fetching current stats from Supabase...")

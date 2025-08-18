@@ -15,6 +15,8 @@ export interface ServerMemberCount {
 
 export async function getManualStats(): Promise<ManualStats> {
   try {
+    console.log("Fetching manual stats from Supabase...")
+
     const { data, error } = await supabase
       .from("manual_stats")
       .select("*")
@@ -31,6 +33,8 @@ export async function getManualStats(): Promise<ManualStats> {
         lastUpdated: new Date().toISOString(),
       }
     }
+
+    console.log("Retrieved manual stats:", data)
 
     return {
       totalServers: data.total_servers,
@@ -51,19 +55,33 @@ export async function getManualStats(): Promise<ManualStats> {
 
 export async function updateManualStats(stats: Omit<ManualStats, "lastUpdated">): Promise<void> {
   try {
-    const { error } = await supabase.from("manual_stats").upsert({
+    console.log("Updating manual stats in Supabase:", stats)
+
+    // First, try to get existing record
+    const { data: existing } = await supabase.from("manual_stats").select("id").limit(1).single()
+
+    const statsData = {
       total_servers: stats.totalServers,
       total_members: stats.totalMembers,
       security_score: stats.securityScore,
       updated_at: new Date().toISOString(),
-    })
-
-    if (error) {
-      console.error("Error updating manual stats:", error)
-      throw new Error(`Failed to update stats: ${error.message}`)
     }
 
-    console.log("Manual stats updated successfully")
+    let result
+    if (existing) {
+      // Update existing record
+      result = await supabase.from("manual_stats").update(statsData).eq("id", existing.id)
+    } else {
+      // Insert new record
+      result = await supabase.from("manual_stats").insert(statsData)
+    }
+
+    if (result.error) {
+      console.error("Error updating manual stats:", result.error)
+      throw new Error(`Failed to update stats: ${result.error.message}`)
+    }
+
+    console.log("Manual stats updated successfully:", result.data)
   } catch (error) {
     console.error("Error in updateManualStats:", error)
     throw error

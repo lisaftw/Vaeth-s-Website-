@@ -1,6 +1,7 @@
 "use server"
 
 import { updateManualStats } from "@/lib/manual-stats"
+import { revalidatePath } from "next/cache"
 
 export async function updateManualStatsAction(formData: FormData) {
   try {
@@ -12,23 +13,22 @@ export async function updateManualStatsAction(formData: FormData) {
 
     console.log("Updating stats:", { totalServers, totalMembers, securityScore })
 
-    const success = await updateManualStats({
+    await updateManualStats({
       totalServers,
       totalMembers,
       securityScore,
-      lastUpdated: new Date().toISOString(),
     })
 
-    if (success) {
-      return {
-        success: true,
-        message: "Statistics updated successfully!",
-      }
-    } else {
-      return {
-        success: false,
-        message: "Failed to update statistics",
-      }
+    // Revalidate paths to clear cache
+    revalidatePath("/")
+    revalidatePath("/admin")
+    revalidatePath("/api/stats")
+
+    console.log("Stats updated successfully")
+
+    return {
+      success: true,
+      message: "Statistics updated successfully!",
     }
   } catch (error) {
     console.error("Error in updateManualStatsAction:", error)
