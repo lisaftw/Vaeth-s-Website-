@@ -129,12 +129,18 @@ export async function addApplication(application: Application): Promise<void> {
       description: application.description,
       members: application.members,
       invite: application.invite,
-      logo: application.logo,
-      representative_discord_id: application.representativeDiscordId,
       created_at: new Date().toISOString(),
     }
 
     // Add optional fields if they exist
+    if (application.logo) {
+      insertData.logo = application.logo
+    }
+
+    if (application.representativeDiscordId) {
+      insertData.representative_discord_id = application.representativeDiscordId
+    }
+
     if (application.ownerName) {
       insertData.owner_name = application.ownerName
     }
@@ -143,17 +149,20 @@ export async function addApplication(application: Application): Promise<void> {
     try {
       insertData.status = "pending"
     } catch (e) {
-      // Status column might not exist yet
+      // Status column might not exist, continuing without it
+      console.log("Status column might not exist, continuing without it")
     }
 
-    const { error } = await supabase.from("applications").insert(insertData)
+    console.log("Insert data:", insertData)
+
+    const { data, error } = await supabase.from("applications").insert(insertData).select()
 
     if (error) {
-      console.error("Error adding application:", error)
+      console.error("Supabase error adding application:", error)
       throw new Error(`Failed to add application: ${error.message}`)
     }
 
-    console.log("Application added successfully to Supabase")
+    console.log("Application added successfully to Supabase:", data)
   } catch (error) {
     console.error("Error in addApplication:", error)
     throw error
