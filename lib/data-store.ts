@@ -187,7 +187,7 @@ export async function addApplication(application: Application): Promise<void> {
   }
 }
 
-export async function removeApplication(index: number): Promise<Application | null> {
+export async function removeApplication(index: number): Promise<void> {
   try {
     console.log("Removing application at index:", index)
 
@@ -211,7 +211,6 @@ export async function removeApplication(index: number): Promise<Application | nu
     }
 
     const applicationToDelete = applications[index]
-    const convertedApp = convertApplicationFromDB(applicationToDelete)
 
     const { error } = await supabase.from("applications").delete().eq("id", applicationToDelete.id)
 
@@ -221,7 +220,6 @@ export async function removeApplication(index: number): Promise<Application | nu
     }
 
     console.log("Application removed successfully from Supabase")
-    return convertedApp
   } catch (error) {
     console.error("Error in removeApplication:", error)
     throw error

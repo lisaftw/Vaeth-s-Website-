@@ -1,7 +1,6 @@
 "use server"
 
 import { approveApplicationToServer } from "@/lib/data-store"
-import { revalidatePath } from "next/cache"
 
 export async function approveApplication(formData: FormData) {
   try {
@@ -20,10 +19,6 @@ export async function approveApplication(formData: FormData) {
     const success = await approveApplicationToServer(index)
 
     if (success) {
-      // Invalidate cache to ensure fresh data
-      revalidatePath("/admin")
-      revalidatePath("/")
-
       return {
         success: true,
         message: "Application approved and server added successfully!",

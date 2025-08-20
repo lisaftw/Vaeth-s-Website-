@@ -54,16 +54,11 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      console.log("Loading data...")
       const [appsData, serversData, statsResponse] = await Promise.all([
         getApplications(),
         getServers(),
         fetch("/api/stats"),
       ])
-
-      console.log("Applications loaded:", appsData.length)
-      console.log("Servers loaded:", serversData.length)
-
       setApplications(appsData)
       setServers(serversData)
 
@@ -145,17 +140,14 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
   const handleApproveApplication = async (index: number) => {
     setIsLoading(true)
     try {
-      console.log("Approving application at index:", index)
       const formData = new FormData()
       formData.append("index", index.toString())
       const result = await approveApplication(formData)
       setMessage(result.success ? result.message : result.error)
       if (result.success) {
-        console.log("Application approved, reloading data...")
         await loadData()
       }
     } catch (error) {
-      console.error("Error approving application:", error)
       setMessage("Error approving application")
     } finally {
       setIsLoading(false)
@@ -167,17 +159,14 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
 
     setIsLoading(true)
     try {
-      console.log("Rejecting application at index:", index)
       const formData = new FormData()
       formData.append("index", index.toString())
       const result = await rejectApplication(formData)
       setMessage(result.success ? result.message : result.error)
       if (result.success) {
-        console.log("Application rejected, reloading data...")
         await loadData()
       }
     } catch (error) {
-      console.error("Error rejecting application:", error)
       setMessage("Error rejecting application")
     } finally {
       setIsLoading(false)
