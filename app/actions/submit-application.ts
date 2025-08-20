@@ -3,92 +3,88 @@
 import { redirect } from "next/navigation"
 import { addApplication } from "@/lib/data-store"
 import { sendDiscordWebhook } from "@/lib/discord-webhook"
+import { revalidatePath } from "next/cache"
 
 export async function submitApplication(formData: FormData) {
   try {
     console.log("=== SUBMIT APPLICATION ACTION ===")
 
-    // Log all form data for debugging
-    console.log("All form data entries:")
-    for (const [key, value] of formData.entries()) {
-      console.log(`  ${key}: ${value}`)
-    }
-
-    // Extract form data with proper field names
-    const name = formData.get("serverName") as string
+    // Extract form data
+    const name = formData.get("name") as string
     const description = formData.get("description") as string
-    const memberCountStr = formData.get("memberCount") as string
-    const invite = formData.get("serverInvite") as string
-    const logo = formData.get("logoUrl") as string
-    const representativeDiscordId = formData.get("representativeId") as string
+    const members = Number.parseInt(formData.get("members") as string)
+    const invite = formData.get("invite") as string
+    const logo = formData.get("logo") as string
+    const representativeId = formData.get("representativeId") as string
     const ownerName = formData.get("ownerName") as string
 
-    console.log("Form data extracted:", {
+    console.log("Form data received:", {
       name,
       description,
-      memberCountStr,
+      members,
       invite,
       logo,
-      representativeDiscordId,
+      representativeId,
       ownerName,
     })
 
     // Validate required fields
-    if (!name || !description || !memberCountStr || !invite || !ownerName || !representativeDiscordId) {
+    if (!name || !description || !members || !invite || !representativeId || !ownerName) {
       console.error("Missing required fields")
-      throw new Error("All required fields must be filled")
+      redirect("/apply?error=missing_fields")
+      return
     }
 
-    const members = Number.parseInt(memberCountStr, 10)
     if (isNaN(members) || members <= 0) {
-      console.error("Invalid member count:", memberCountStr)
-      throw new Error("Invalid member count")
+      console.error("Invalid member count")
+      redirect("/apply?error=invalid_members")
+      return
     }
 
     // Create application object
     const application = {
-      name: name.trim(),
-      description: description.trim(),
+      name,
+      description,
       members,
-      invite: invite.trim(),
-      logo: logo?.trim() || undefined,
-      representativeDiscordId: representativeDiscordId.trim(),
-      ownerName: ownerName.trim(),
+      invite,
+      logo: logo || undefined,
+      representativeDiscordId: representativeId,
+      ownerName,
       submittedAt: new Date().toISOString(),
     }
 
     console.log("Application object:", application)
 
-    // Save to database
+    // Add to database
     await addApplication(application)
-    console.log("Application saved to database successfully")
 
-    // Try to send Discord webhook (don't fail if this doesn't work)
+    // Send Discord webhook notification (optional)
     try {
       await sendDiscordWebhook({
-        title: "New Alliance Application",
-        description: `**${application.name}** has applied to join the alliance`,
-        fields: [
-          { name: "Server Name", value: application.name, inline: true },
-          { name: "Members", value: application.members.toLocaleString(), inline: true },
-          { name: "Description", value: application.description },
-          { name: "Discord Invite", value: application.invite },
-          { name: "Representative ID", value: application.representativeDiscordId, inline: true },
-          { name: "Server Owner", value: application.ownerName, inline: true },
-        ],
-        color: 0x00ff00,
+        content: `🆕 **New Server Application**\n**Server:** ${name}\n**Members:** ${members.toLocaleString()}\n**Owner:** ${ownerName}\n**Representative:** <@${representativeId}>\n**Invite:** ${invite}`,
       })
-      console.log("Discord webhook sent successfully")
     } catch (webhookError) {
-      console.error("Discord webhook failed (continuing anyway):", webhookError)
+      console.error("Discord webhook failed:", webhookError)
+      // Don't fail the entire application if webhook fails
     }
 
-    console.log("=== APPLICATION SUBMITTED SUCCESSFULLY ===")
+    // Revalidate admin page to show new application
+    revalidatePath("/admin")
+
+    console.log("Application submitted successfully")
+    console.log("=== END SUBMIT APPLICATION ===")
+
+    // Redirect to confirmation page
+    redirect("/confirmation")
   } catch (error) {
     console.error("Error in submitApplication:", error)
-    throw error
-  }
 
-  // Redirect to confirmation page
-  redirect("/confirmation")
+    // Check if it's a duplicate error
+    if (error instanceof Error && error.message.includes("already exists")) {
+      redirect("/apply?error=duplicate")
+      return
+    }
+
+    redirect("/apply?error=submission_failed")
+  }
 }

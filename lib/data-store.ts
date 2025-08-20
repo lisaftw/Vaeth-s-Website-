@@ -139,6 +139,20 @@ export async function addApplication(application: Application): Promise<void> {
     console.log("=== ADDING APPLICATION TO SUPABASE ===")
     console.log("Application data:", application)
 
+    // Check for existing application with same name and invite to prevent duplicates
+    const { data: existingApps, error: checkError } = await supabase
+      .from("applications")
+      .select("id, name, invite")
+      .eq("name", application.name)
+      .eq("invite", application.invite)
+
+    if (checkError) {
+      console.error("Error checking for duplicates:", checkError)
+    } else if (existingApps && existingApps.length > 0) {
+      console.log("Duplicate application found, skipping insert")
+      throw new Error("An application with this name and invite already exists")
+    }
+
     const insertData: any = {
       name: application.name,
       description: application.description,
@@ -187,14 +201,16 @@ export async function addApplication(application: Application): Promise<void> {
   }
 }
 
-export async function removeApplication(index: number): Promise<void> {
+export async function removeApplication(index: number): Promise<Application | null> {
   try {
+    console.log("=== REMOVING APPLICATION ===")
     console.log("Removing application at index:", index)
 
-    // Get all applications to find the one at the index
+    // Get all pending applications to find the one at the index
     const { data: applications, error: fetchError } = await supabase
       .from("applications")
       .select("*")
+      .eq("status", "pending")
       .order("created_at", { ascending: false })
 
     if (fetchError) {
@@ -202,8 +218,10 @@ export async function removeApplication(index: number): Promise<void> {
       throw new Error(`Failed to fetch applications: ${fetchError.message}`)
     }
 
+    console.log("Found applications for removal:", applications?.length || 0)
+
     if (!applications || applications.length === 0) {
-      throw new Error("No applications found")
+      throw new Error("No pending applications found")
     }
 
     if (index < 0 || index >= applications.length) {
@@ -211,6 +229,7 @@ export async function removeApplication(index: number): Promise<void> {
     }
 
     const applicationToDelete = applications[index]
+    console.log("Deleting application:", applicationToDelete.name, "ID:", applicationToDelete.id)
 
     const { error } = await supabase.from("applications").delete().eq("id", applicationToDelete.id)
 
@@ -220,6 +239,9 @@ export async function removeApplication(index: number): Promise<void> {
     }
 
     console.log("Application removed successfully from Supabase")
+    console.log("=== END REMOVE APPLICATION ===")
+
+    return convertApplicationFromDB(applicationToDelete)
   } catch (error) {
     console.error("Error in removeApplication:", error)
     throw error
@@ -359,12 +381,14 @@ export async function updateServer(index: number, server: Server): Promise<void>
 
 export async function approveApplication(index: number): Promise<void> {
   try {
+    console.log("=== APPROVING APPLICATION ===")
     console.log("Approving application at index:", index)
 
-    // Get all applications
+    // Get all pending applications
     const { data: applications, error: fetchError } = await supabase
       .from("applications")
       .select("*")
+      .eq("status", "pending")
       .order("created_at", { ascending: false })
 
     if (fetchError) {
@@ -373,7 +397,7 @@ export async function approveApplication(index: number): Promise<void> {
     }
 
     if (!applications || applications.length === 0) {
-      throw new Error("No applications found")
+      throw new Error("No pending applications found")
     }
 
     if (index < 0 || index >= applications.length) {
@@ -381,6 +405,7 @@ export async function approveApplication(index: number): Promise<void> {
     }
 
     const applicationToApprove = applications[index]
+    console.log("Approving application:", applicationToApprove.name)
 
     // Add to servers table
     const { error: addError } = await supabase.from("servers").insert({
@@ -399,27 +424,22 @@ export async function approveApplication(index: number): Promise<void> {
       throw new Error(`Failed to add approved server: ${addError.message}`)
     }
 
-    // Try to update application status if column exists
-    try {
-      const { error: updateError } = await supabase
-        .from("applications")
-        .update({
-          status: "approved",
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq("id", applicationToApprove.id)
+    // Update application status to approved
+    const { error: updateError } = await supabase
+      .from("applications")
+      .update({
+        status: "approved",
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", applicationToApprove.id)
 
-      if (updateError) {
-        console.log("Status column might not exist, deleting application instead")
-        // If status update fails, delete the application
-        await supabase.from("applications").delete().eq("id", applicationToApprove.id)
-      }
-    } catch (e) {
-      // If status column doesn't exist, delete the application
-      await supabase.from("applications").delete().eq("id", applicationToApprove.id)
+    if (updateError) {
+      console.error("Error updating application status:", updateError)
+      // Don't throw error here, server was already added successfully
     }
 
     console.log("Application approved successfully")
+    console.log("=== END APPROVE APPLICATION ===")
   } catch (error) {
     console.error("Error in approveApplication:", error)
     throw error
@@ -428,12 +448,14 @@ export async function approveApplication(index: number): Promise<void> {
 
 export async function rejectApplication(index: number): Promise<void> {
   try {
+    console.log("=== REJECTING APPLICATION ===")
     console.log("Rejecting application at index:", index)
 
-    // Get all applications
+    // Get all pending applications
     const { data: applications, error: fetchError } = await supabase
       .from("applications")
       .select("*")
+      .eq("status", "pending")
       .order("created_at", { ascending: false })
 
     if (fetchError) {
@@ -442,7 +464,7 @@ export async function rejectApplication(index: number): Promise<void> {
     }
 
     if (!applications || applications.length === 0) {
-      throw new Error("No applications found")
+      throw new Error("No pending applications found")
     }
 
     if (index < 0 || index >= applications.length) {
@@ -450,28 +472,24 @@ export async function rejectApplication(index: number): Promise<void> {
     }
 
     const applicationToReject = applications[index]
+    console.log("Rejecting application:", applicationToReject.name)
 
-    // Try to update application status if column exists
-    try {
-      const { error } = await supabase
-        .from("applications")
-        .update({
-          status: "rejected",
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq("id", applicationToReject.id)
+    // Update application status to rejected
+    const { error } = await supabase
+      .from("applications")
+      .update({
+        status: "rejected",
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", applicationToReject.id)
 
-      if (error) {
-        console.log("Status column might not exist, deleting application instead")
-        // If status update fails, delete the application
-        await supabase.from("applications").delete().eq("id", applicationToReject.id)
-      }
-    } catch (e) {
-      // If status column doesn't exist, delete the application
-      await supabase.from("applications").delete().eq("id", applicationToReject.id)
+    if (error) {
+      console.error("Error rejecting application:", error)
+      throw new Error(`Failed to reject application: ${error.message}`)
     }
 
     console.log("Application rejected successfully")
+    console.log("=== END REJECT APPLICATION ===")
   } catch (error) {
     console.error("Error in rejectApplication:", error)
     throw error
@@ -522,6 +540,64 @@ export async function approveApplicationToServer(index: number): Promise<boolean
   } catch (error) {
     console.error("Error in approveApplicationToServer:", error)
     return false
+  }
+}
+
+// Clean up duplicate applications
+export async function cleanupDuplicateApplications(): Promise<number> {
+  try {
+    console.log("=== CLEANING UP DUPLICATE APPLICATIONS ===")
+
+    // Get all applications
+    const { data: applications, error } = await supabase
+      .from("applications")
+      .select("*")
+      .order("created_at", { ascending: true }) // Oldest first
+
+    if (error) {
+      console.error("Error fetching applications for cleanup:", error)
+      return 0
+    }
+
+    if (!applications || applications.length === 0) {
+      console.log("No applications found")
+      return 0
+    }
+
+    // Group by name and invite to find duplicates
+    const seen = new Map<string, any>()
+    const duplicates: any[] = []
+
+    for (const app of applications) {
+      const key = `${app.name}|${app.invite}`
+      if (seen.has(key)) {
+        duplicates.push(app)
+      } else {
+        seen.set(key, app)
+      }
+    }
+
+    console.log(`Found ${duplicates.length} duplicate applications`)
+
+    // Delete duplicates
+    let deletedCount = 0
+    for (const duplicate of duplicates) {
+      const { error: deleteError } = await supabase.from("applications").delete().eq("id", duplicate.id)
+
+      if (deleteError) {
+        console.error("Error deleting duplicate:", deleteError)
+      } else {
+        deletedCount++
+        console.log(`Deleted duplicate: ${duplicate.name}`)
+      }
+    }
+
+    console.log(`Cleaned up ${deletedCount} duplicate applications`)
+    console.log("=== END CLEANUP ===")
+    return deletedCount
+  } catch (error) {
+    console.error("Error in cleanupDuplicateApplications:", error)
+    return 0
   }
 }
 

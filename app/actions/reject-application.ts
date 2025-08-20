@@ -1,6 +1,7 @@
 "use server"
 
-import { removeApplication } from "@/lib/data-store"
+import { rejectApplication as rejectApplicationFromStore } from "@/lib/data-store"
+import { revalidatePath } from "next/cache"
 
 export async function rejectApplication(formData: FormData) {
   try {
@@ -16,18 +17,14 @@ export async function rejectApplication(formData: FormData) {
       }
     }
 
-    const removedApplication = await removeApplication(index)
+    await rejectApplicationFromStore(index)
 
-    if (removedApplication) {
-      return {
-        success: true,
-        message: `Application for "${removedApplication.name}" has been rejected and removed.`,
-      }
-    } else {
-      return {
-        success: false,
-        message: "Failed to reject application",
-      }
+    // Revalidate the admin page to show updated data
+    revalidatePath("/admin")
+
+    return {
+      success: true,
+      message: "Application has been rejected successfully.",
     }
   } catch (error) {
     console.error("Error in rejectApplication:", error)

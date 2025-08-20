@@ -21,6 +21,7 @@ import {
   BarChart3,
   UserCheck,
   Edit,
+  AlertTriangle,
 } from "lucide-react"
 
 // Import actions
@@ -81,6 +82,33 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Handle cleanup duplicates
+  const handleCleanupDuplicates = async () => {
+    if (!confirm("Are you sure you want to clean up duplicate applications? This cannot be undone.")) return
+
+    setIsLoading(true)
+    try {
+      const response = await fetch("/api/admin/cleanup-duplicates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password: "unified2024" }),
+      })
+
+      const result = await response.json()
+      setMessage(result.message)
+
+      if (result.success) {
+        await loadData() // Reload data to show updated list
+      }
+    } catch (error) {
+      setMessage("Error cleaning up duplicates")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Handle server actions
   const handleAddServer = async (formData: FormData) => {
@@ -143,7 +171,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
       const formData = new FormData()
       formData.append("index", index.toString())
       const result = await approveApplication(formData)
-      setMessage(result.success ? result.message : result.error)
+      setMessage(result.success ? result.message : result.message)
       if (result.success) {
         await loadData()
       }
@@ -162,7 +190,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
       const formData = new FormData()
       formData.append("index", index.toString())
       const result = await rejectApplication(formData)
-      setMessage(result.success ? result.message : result.error)
+      setMessage(result.success ? result.message : result.message)
       if (result.success) {
         await loadData()
       }
@@ -252,10 +280,21 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-white">Pending Applications</h2>
-              <Button onClick={loadData} disabled={isLoading}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                Refresh
-              </Button>
+              <div className="flex space-x-2">
+                <Button
+                  onClick={handleCleanupDuplicates}
+                  disabled={isLoading}
+                  variant="outline"
+                  className="border-yellow-600 text-yellow-400 hover:bg-yellow-600 hover:text-white bg-transparent"
+                >
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Cleanup Duplicates
+                </Button>
+                <Button onClick={loadData} disabled={isLoading}>
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+              </div>
             </div>
 
             {applications.length === 0 ? (
@@ -656,6 +695,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                   <p>• Data is stored in Supabase database</p>
                   <p>• All changes are automatically saved</p>
                   <p>• Statistics are updated in real-time</p>
+                  <p>• Duplicate applications can be cleaned up using the cleanup button</p>
                 </div>
               </CardContent>
             </Card>

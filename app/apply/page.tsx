@@ -6,24 +6,44 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { submitApplication } from "@/app/actions/submit-application"
-import { ArrowLeft, Send, Shield, Users, Globe } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Send, AlertCircle, CheckCircle, Users, Shield, Globe } from "lucide-react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
+import { submitApplication } from "@/app/actions/submit-application"
 
 export default function ApplyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const searchParams = useSearchParams()
+  const error = searchParams.get("error")
 
   const handleSubmit = async (formData: FormData) => {
     setIsSubmitting(true)
     try {
       await submitApplication(formData)
     } catch (error) {
-      console.error("Error submitting application:", error)
-      alert("Error submitting application. Please try again.")
+      console.error("Form submission error:", error)
     } finally {
       setIsSubmitting(false)
     }
   }
+
+  const getErrorMessage = (errorCode: string | null) => {
+    switch (errorCode) {
+      case "missing_fields":
+        return "Please fill in all required fields."
+      case "invalid_members":
+        return "Please enter a valid member count."
+      case "duplicate":
+        return "An application with this server name and invite already exists."
+      case "submission_failed":
+        return "Failed to submit application. Please try again."
+      default:
+        return null
+    }
+  }
+
+  const errorMessage = getErrorMessage(error)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950">
@@ -34,19 +54,10 @@ export default function ApplyPage() {
       {/* Header */}
       <div className="relative z-10 bg-gray-900/50 border-b border-red-900/30 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Shield className="w-8 h-8 text-red-400" />
-              <h1 className="text-2xl font-bold text-white">Alliance Application</h1>
-            </div>
-            <Link href="/">
-              <Button
-                variant="outline"
-                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white bg-transparent"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
-              </Button>
+          <div className="flex items-center space-x-4">
+            <Link href="/" className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+              <span>Back to Home</span>
             </Link>
           </div>
         </div>
@@ -54,143 +65,136 @@ export default function ApplyPage() {
 
       {/* Main Content */}
       <div className="relative z-10 container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
-          {/* Introduction */}
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-4">Join Our Alliance</h2>
-            <p className="text-gray-300 text-lg">
-              Apply to become part of our growing network of Discord servers. Together, we build stronger communities.
+        <div className="max-w-4xl mx-auto">
+          {/* Header Section */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Join the <span className="text-red-400">Unified Realms</span> Alliance
+            </h1>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+              Ready to unite your server with the most powerful gaming alliance? Submit your application below and
+              become part of something extraordinary.
             </p>
           </div>
 
-          {/* Benefits Cards */}
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <Card className="bg-gray-800/50 border-gray-700">
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="mb-8 p-4 bg-red-900/20 border border-red-500/30 rounded-lg flex items-center space-x-3">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <p className="text-red-300">{errorMessage}</p>
+            </div>
+          )}
+
+          {/* Benefits Section */}
+          <div className="grid md:grid-cols-3 gap-6 mb-12">
+            <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
               <CardContent className="p-6 text-center">
-                <Users className="w-8 h-8 text-blue-400 mx-auto mb-3" />
-                <h3 className="text-white font-semibold mb-2">Grow Together</h3>
-                <p className="text-gray-400 text-sm">Expand your community through cross-server collaboration</p>
+                <Users className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-white mb-2">Massive Network</h3>
+                <p className="text-gray-400">Connect with thousands of active gamers across multiple servers</p>
               </CardContent>
             </Card>
-            <Card className="bg-gray-800/50 border-gray-700">
+            <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
               <CardContent className="p-6 text-center">
-                <Shield className="w-8 h-8 text-green-400 mx-auto mb-3" />
-                <h3 className="text-white font-semibold mb-2">Enhanced Security</h3>
-                <p className="text-gray-400 text-sm">Benefit from shared security measures and best practices</p>
+                <Shield className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-white mb-2">Enhanced Security</h3>
+                <p className="text-gray-400">Advanced moderation tools and security protocols</p>
               </CardContent>
             </Card>
-            <Card className="bg-gray-800/50 border-gray-700">
+            <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
               <CardContent className="p-6 text-center">
-                <Globe className="w-8 h-8 text-purple-400 mx-auto mb-3" />
-                <h3 className="text-white font-semibold mb-2">Global Network</h3>
-                <p className="text-gray-400 text-sm">Connect with servers worldwide and share resources</p>
+                <Globe className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-white mb-2">Global Reach</h3>
+                <p className="text-gray-400">Expand your community with international partnerships</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Application Form */}
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-white text-xl">Application Form</CardTitle>
-              <p className="text-gray-400">Please fill out all required fields to submit your application.</p>
+              <CardTitle className="text-2xl text-white flex items-center">
+                <Send className="w-6 h-6 mr-3 text-red-400" />
+                Server Application
+              </CardTitle>
+              <p className="text-gray-400">
+                Fill out the form below to submit your server for review. All fields marked with * are required.
+              </p>
             </CardHeader>
             <CardContent>
               <form action={handleSubmit} className="space-y-6">
-                {/* Server Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-white border-b border-gray-700 pb-2">Server Information</h3>
-
+                <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <Label htmlFor="serverName" className="text-gray-300">
+                    <Label htmlFor="name" className="text-gray-300 flex items-center">
                       Server Name *
                     </Label>
                     <Input
-                      id="serverName"
-                      name="serverName"
-                      type="text"
+                      id="name"
+                      name="name"
                       required
                       placeholder="Enter your server name"
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-red-400"
                     />
                   </div>
-
                   <div>
-                    <Label htmlFor="description" className="text-gray-300">
-                      Server Description *
-                    </Label>
-                    <Textarea
-                      id="description"
-                      name="description"
-                      required
-                      placeholder="Describe your server, its purpose, and community"
-                      rows={4}
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="memberCount" className="text-gray-300">
-                      Current Member Count *
+                    <Label htmlFor="members" className="text-gray-300">
+                      Member Count *
                     </Label>
                     <Input
-                      id="memberCount"
-                      name="memberCount"
+                      id="members"
+                      name="members"
                       type="number"
-                      required
                       min="1"
-                      placeholder="e.g., 1500"
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="serverInvite" className="text-gray-300">
-                      Discord Invite Link *
-                    </Label>
-                    <Input
-                      id="serverInvite"
-                      name="serverInvite"
-                      type="url"
                       required
-                      placeholder="https://discord.gg/your-invite"
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="logoUrl" className="text-gray-300">
-                      Server Logo URL (Optional)
-                    </Label>
-                    <Input
-                      id="logoUrl"
-                      name="logoUrl"
-                      type="url"
-                      placeholder="https://example.com/logo.png"
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                      placeholder="e.g., 1500"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-red-400"
                     />
                   </div>
                 </div>
 
-                {/* Contact Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-white border-b border-gray-700 pb-2">
-                    Contact Information
-                  </h3>
+                <div>
+                  <Label htmlFor="description" className="text-gray-300">
+                    Server Description *
+                  </Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    required
+                    rows={4}
+                    placeholder="Describe your server, its focus, community, and what makes it special..."
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-red-400"
+                  />
+                </div>
 
+                <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <Label htmlFor="ownerName" className="text-gray-300">
-                      Server Owner Name *
+                    <Label htmlFor="invite" className="text-gray-300">
+                      Discord Invite Link *
                     </Label>
                     <Input
-                      id="ownerName"
-                      name="ownerName"
-                      type="text"
+                      id="invite"
+                      name="invite"
+                      type="url"
                       required
-                      placeholder="Your name or username"
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                      placeholder="https://discord.gg/yourserver"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-red-400"
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="logo" className="text-gray-300">
+                      Server Logo URL (Optional)
+                    </Label>
+                    <Input
+                      id="logo"
+                      name="logo"
+                      type="url"
+                      placeholder="https://example.com/logo.png"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-red-400"
+                    />
+                  </div>
+                </div>
 
+                <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <Label htmlFor="representativeId" className="text-gray-300">
                       Representative Discord ID *
@@ -198,47 +202,78 @@ export default function ApplyPage() {
                     <Input
                       id="representativeId"
                       name="representativeId"
-                      type="text"
                       required
-                      placeholder="e.g., 123456789012345678"
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                      placeholder="123456789012345678"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-red-400"
                     />
-                    <p className="text-sm text-gray-400 mt-1">
-                      Right-click your profile in Discord and select "Copy User ID" (Developer Mode must be enabled)
+                    <p className="text-sm text-gray-500 mt-1">
+                      The Discord ID of your main representative/contact person
                     </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="ownerName" className="text-gray-300">
+                      Server Owner Name *
+                    </Label>
+                    <Input
+                      id="ownerName"
+                      name="ownerName"
+                      required
+                      placeholder="Enter the server owner's name"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-red-400"
+                    />
                   </div>
                 </div>
 
-                {/* Terms and Conditions */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-white border-b border-gray-700 pb-2">Agreement</h3>
-
-                  <div className="bg-gray-700/30 p-4 rounded-lg">
-                    <p className="text-gray-300 text-sm mb-3">By submitting this application, you agree to:</p>
-                    <ul className="text-gray-400 text-sm space-y-1 list-disc list-inside">
-                      <li>Follow all alliance guidelines and policies</li>
-                      <li>Maintain a respectful and safe community environment</li>
-                      <li>Participate in alliance activities and communications</li>
-                      <li>Allow alliance representatives to join your server for verification</li>
-                    </ul>
+                {/* Requirements Section */}
+                <div className="bg-gray-700/30 p-6 rounded-lg border border-gray-600">
+                  <h3 className="text-lg font-semibold text-white mb-4">Application Requirements</h3>
+                  <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-300">
+                    <div className="flex items-start space-x-2">
+                      <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                      <span>Minimum 100 active members</span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                      <span>Active moderation team</span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                      <span>Gaming-focused community</span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                      <span>Commitment to alliance values</span>
+                    </div>
                   </div>
+                </div>
+
+                {/* Terms Agreement */}
+                <div className="bg-gray-700/20 p-4 rounded-lg border border-gray-600">
+                  <p className="text-sm text-gray-400">
+                    By submitting this application, you agree to our{" "}
+                    <Link href="/terms" className="text-red-400 hover:text-red-300 underline">
+                      Terms of Service
+                    </Link>{" "}
+                    and confirm that all information provided is accurate. Applications are typically reviewed within
+                    24-48 hours.
+                  </p>
                 </div>
 
                 {/* Submit Button */}
-                <div className="pt-6">
+                <div className="flex justify-center pt-6">
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3"
+                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                        Submitting Application...
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                        Submitting...
                       </>
                     ) : (
                       <>
-                        <Send className="w-4 h-4 mr-2" />
+                        <Send className="w-5 h-5 mr-2" />
                         Submit Application
                       </>
                     )}
@@ -248,12 +283,21 @@ export default function ApplyPage() {
             </CardContent>
           </Card>
 
-          {/* Additional Information */}
-          <div className="mt-8 text-center">
-            <p className="text-gray-400 text-sm">
-              Applications are typically reviewed within 24-48 hours. You will be contacted via Discord once your
-              application has been processed.
+          {/* Additional Info */}
+          <div className="mt-12 text-center">
+            <p className="text-gray-400 mb-4">
+              Questions about the application process? Need help with your submission?
             </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Badge variant="outline" className="border-gray-600 text-gray-300 px-4 py-2">
+                <Users className="w-4 h-4 mr-2" />
+                24/7 Support Available
+              </Badge>
+              <Badge variant="outline" className="border-gray-600 text-gray-300 px-4 py-2">
+                <Shield className="w-4 h-4 mr-2" />
+                Secure Application Process
+              </Badge>
+            </div>
           </div>
         </div>
       </div>
