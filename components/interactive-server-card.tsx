@@ -4,18 +4,19 @@ import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, ExternalLink, Zap, Crown, Star, Shield, Tag, Calendar } from "lucide-react"
+import { Users, ExternalLink, Shield, Star, Calendar } from "lucide-react"
 import { ServerLogo } from "./server-logo"
 
 interface Server {
   name: string
   description: string
-  invite: string
   members: number
+  invite: string
   logo?: string
   verified?: boolean
-  tags?: string[]
   dateAdded?: string
+  tags?: string[]
+  isMainServer?: boolean
 }
 
 interface InteractiveServerCardProps {
@@ -23,152 +24,180 @@ interface InteractiveServerCardProps {
   index: number
 }
 
+// Helper function to ensure proper Discord invite URL format
+function getDiscordInviteUrl(invite: string): string {
+  if (!invite) return "https://discord.gg/yXTrkPPQAK" // Fallback to main server
+
+  // If it's already a full URL, return as is
+  if (invite.startsWith("http")) return invite
+
+  // If it's just the invite code, prepend discord.gg
+  if (invite.includes("discord.gg/")) return `https://${invite}`
+
+  // If it's just the code, create full URL
+  return `https://discord.gg/${invite}`
+}
+
+// Helper function to format member count
+function formatMemberCount(count: number): string {
+  if (count >= 1000000) {
+    return `${(count / 1000000).toFixed(1)}M`
+  } else if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}K`
+  }
+  return count.toString()
+}
+
+// Helper function to format date
+function formatDate(dateString?: string): string {
+  if (!dateString) return "Recently"
+
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+    })
+  } catch {
+    return "Recently"
+  }
+}
+
 export function InteractiveServerCard({ server, index }: InteractiveServerCardProps) {
   const [isHovered, setIsHovered] = useState(false)
-  const [isClicked, setIsClicked] = useState(false)
+  const [isJoining, setIsJoining] = useState(false)
 
-  const handleClick = () => {
-    setIsClicked(true)
-    setTimeout(() => setIsClicked(false), 200)
+  const handleJoinServer = async () => {
+    setIsJoining(true)
+
+    try {
+      const discordUrl = getDiscordInviteUrl(server.invite)
+      console.log("Opening Discord invite:", discordUrl)
+
+      // Open in new tab with security attributes
+      window.open(discordUrl, "_blank", "noopener,noreferrer")
+    } catch (error) {
+      console.error("Error opening Discord invite:", error)
+      // Fallback to main server
+      window.open("https://discord.gg/yXTrkPPQAK", "_blank", "noopener,noreferrer")
+    } finally {
+      // Reset joining state after a short delay
+      setTimeout(() => setIsJoining(false), 1000)
+    }
   }
-
-  const getStatusBadge = () => {
-    if (server.tags?.includes("Founding")) return { text: "Founding", color: "bg-red-600" }
-    if (server.tags?.includes("Official")) return { text: "Official", color: "bg-blue-600" }
-    if (server.tags?.includes("Premium")) return { text: "Premium", color: "bg-purple-600" }
-    if (server.tags?.includes("Active")) return { text: "Active", color: "bg-green-600" }
-    return { text: "Community", color: "bg-gray-600" }
-  }
-
-  const statusBadge = getStatusBadge()
 
   return (
     <Card
-      className={`bg-gradient-to-br from-gray-900 via-gray-900 to-black border-red-900/30 hover:border-red-600/50 transition-all duration-500 group overflow-hidden relative ${
-        isHovered ? "scale-105 shadow-2xl shadow-red-900/50" : ""
-      } ${isClicked ? "scale-95" : ""}`}
+      className={`
+        bg-gradient-to-br from-gray-900 to-black border-red-900/30 
+        hover:border-red-700/50 transition-all duration-500 
+        hover:scale-105 group relative overflow-hidden
+        ${isHovered ? "shadow-2xl shadow-red-900/25" : "shadow-lg shadow-black/50"}
+        ${server.isMainServer ? "ring-2 ring-red-600/50" : ""}
+      `}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={handleClick}
+      style={{
+        animationDelay: `${index * 100}ms`,
+      }}
     >
-      {/* Animated background */}
-      <div
-        className={`absolute inset-0 bg-gradient-to-br from-red-950/10 to-transparent transition-opacity duration-500 ${
-          isHovered ? "opacity-100" : "opacity-0"
-        }`}
-      ></div>
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-gradient-to-br from-red-950/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/5 rounded-full blur-3xl transform translate-x-16 -translate-y-16 group-hover:bg-red-600/10 transition-colors duration-500"></div>
 
-      <CardHeader className="relative z-10 pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-4">
-            {/* Server Logo */}
-            <ServerLogo
-              name={server.name}
-              logo={server.logo}
-              size="lg"
-              animated={true}
-              showBorder={true}
-              verified={server.verified}
-            />
-            <div className="flex flex-col">
-              <div className="flex items-center space-x-2 mb-2">
-                <div
-                  className={`w-3 h-3 rounded-full shadow-lg animate-pulse ${
-                    isHovered ? "bg-green-400 shadow-green-400/50" : "bg-green-500 shadow-green-500/50"
-                  }`}
-                ></div>
-                <Badge className={`${statusBadge.color} text-white border-0 px-3 py-1 font-bold text-xs`}>
-                  {statusBadge.text}
-                </Badge>
-                {server.verified && (
-                  <Badge className="bg-blue-600 text-white border-0 px-2 py-1 font-bold text-xs">VERIFIED</Badge>
-                )}
-              </div>
-              <CardTitle
-                className={`text-xl font-bold transition-colors duration-300 ${
-                  isHovered ? "text-red-300" : "text-red-400"
-                }`}
-              >
-                {server.name}
-              </CardTitle>
-            </div>
-          </div>
-          <div className={`transition-transform duration-300 ${isHovered ? "rotate-12 scale-110" : ""}`}>
-            {server.verified ? (
-              <Crown className="w-6 h-6 text-yellow-500" />
-            ) : index % 3 === 0 ? (
-              <Crown className="w-6 h-6 text-yellow-500" />
-            ) : index % 3 === 1 ? (
-              <Star className="w-6 h-6 text-blue-500" />
-            ) : (
-              <Shield className="w-6 h-6 text-green-500" />
-            )}
-          </div>
+      <CardHeader className="text-center pb-4 relative z-10">
+        {/* Server Logo */}
+        <div className="mx-auto mb-4">
+          <ServerLogo
+            name={server.name}
+            logo={server.logo}
+            verified={server.verified}
+            members={server.members}
+            size="lg"
+            showBadge={true}
+          />
+        </div>
+
+        {/* Server Name */}
+        <CardTitle className="text-xl font-bold text-white mb-2 group-hover:text-red-300 transition-colors flex items-center justify-center gap-2">
+          {server.name}
+          {server.isMainServer && (
+            <Badge className="bg-red-600 hover:bg-red-700 text-white border-0 text-xs">
+              <Shield className="w-3 h-3 mr-1" />
+              MAIN
+            </Badge>
+          )}
+          {server.verified && !server.isMainServer && (
+            <Badge className="bg-green-600 hover:bg-green-700 text-white border-0 text-xs">
+              <Star className="w-3 h-3 mr-1" />
+              VERIFIED
+            </Badge>
+          )}
+        </CardTitle>
+
+        {/* Member Count */}
+        <div className="flex items-center justify-center gap-2 text-red-400 mb-3">
+          <Users className="w-4 h-4" />
+          <span className="font-semibold text-lg">{formatMemberCount(server.members)} members</span>
         </div>
 
         {/* Tags */}
         {server.tags && server.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {server.tags.slice(0, 4).map((tag, tagIndex) => (
-              <Badge
-                key={tagIndex}
-                className="bg-gray-700/50 text-gray-300 border-0 px-2 py-1 text-xs hover:bg-red-600/20 hover:text-red-300 transition-colors"
-              >
-                <Tag className="w-3 h-3 mr-1" />
+          <div className="flex flex-wrap gap-1 justify-center mb-3">
+            {server.tags.slice(0, 3).map((tag, tagIndex) => (
+              <Badge key={tagIndex} variant="outline" className="text-xs border-red-700/50 text-red-300 bg-red-950/30">
                 {tag}
               </Badge>
             ))}
-            {server.tags.length > 4 && (
-              <Badge className="bg-gray-600/50 text-gray-400 border-0 px-2 py-1 text-xs">
-                +{server.tags.length - 4} more
-              </Badge>
-            )}
           </div>
         )}
-
-        <CardDescription className="text-gray-300 leading-relaxed">{server.description}</CardDescription>
       </CardHeader>
 
       <CardContent className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3 text-gray-400">
-            <Users
-              className={`w-5 h-5 text-red-500 transition-transform duration-300 ${isHovered ? "scale-110" : ""}`}
-            />
-            <span className="text-lg font-semibold text-white">{server.members.toLocaleString()}</span>
-            <span className="text-sm">members</span>
+        {/* Description */}
+        <CardDescription className="text-center text-gray-300 text-sm leading-relaxed mb-6 min-h-[3rem] flex items-center justify-center">
+          {server.description}
+        </CardDescription>
+
+        {/* Server Info */}
+        <div className="flex items-center justify-center gap-4 text-xs text-gray-500 mb-6">
+          <div className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            <span>Joined {formatDate(server.dateAdded)}</span>
           </div>
-          <Button
-            asChild
-            size="sm"
-            className={`bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-0 rounded-xl px-6 py-2 font-semibold shadow-lg shadow-red-900/30 transition-all duration-300 ${
-              isHovered ? "scale-105 shadow-2xl shadow-red-900/50" : ""
-            }`}
-          >
-            <a href={server.invite} target="_blank" rel="noopener noreferrer">
-              <Zap className="w-4 h-4 mr-2" />
-              Join
-              <ExternalLink className="w-4 h-4 ml-2" />
-            </a>
-          </Button>
         </div>
 
-        {/* Date added */}
-        {server.dateAdded && (
-          <div className="flex items-center text-gray-500 text-sm mb-4">
-            <Calendar className="w-4 h-4 mr-2" />
-            Joined {new Date(server.dateAdded).toLocaleDateString()}
+        {/* Join Button */}
+        <Button
+          onClick={handleJoinServer}
+          disabled={isJoining}
+          className={`
+            w-full bg-gradient-to-r from-red-600 to-red-700 
+            hover:from-red-700 hover:to-red-800 text-white border-0 
+            rounded-xl py-3 font-semibold shadow-lg shadow-red-900/50 
+            transition-all duration-300 hover:scale-105 hover:shadow-red-900/70 
+            group/button relative overflow-hidden
+            ${isJoining ? "opacity-75 cursor-not-allowed" : ""}
+          `}
+        >
+          {/* Button background effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-600 opacity-0 group-hover/button:opacity-100 transition-opacity duration-300"></div>
+
+          {/* Button content */}
+          <div className="relative z-10 flex items-center justify-center gap-2">
+            <ExternalLink className={`w-4 h-4 ${isJoining ? "animate-spin" : "group-hover/button:animate-bounce"}`} />
+            <span>{isJoining ? "Opening..." : "Join Server"}</span>
+          </div>
+        </Button>
+
+        {/* Additional info for main server */}
+        {server.isMainServer && (
+          <div className="mt-4 p-3 bg-red-950/20 rounded-lg border border-red-900/30">
+            <p className="text-xs text-red-300 text-center">
+              🏰 Main alliance hub - Strategic coordination & partnerships
+            </p>
           </div>
         )}
-
-        {/* Progress bar animation */}
-        <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
-          <div
-            className={`h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full transition-all duration-1000 ${
-              isHovered ? "w-full" : "w-0"
-            }`}
-          ></div>
-        </div>
       </CardContent>
     </Card>
   )

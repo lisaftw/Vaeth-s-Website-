@@ -1,6 +1,6 @@
 "use server"
 
-const ADMIN_PASSWORD = "UnifiedRealms2024!"
+const ADMIN_PASSWORD = "TheRealms&Sovereign3301!"
 const MAX_ATTEMPTS = 3
 const LOCKOUT_DURATION = 15 * 60 * 1000 // 15 minutes
 

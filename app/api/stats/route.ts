@@ -1,38 +1,36 @@
 import { NextResponse } from "next/server"
 import { getStats } from "@/lib/data-store"
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
-
 export async function GET() {
   try {
-    console.log("=== STATS API ROUTE ===")
-
+    console.log("Stats API route called")
     const stats = await getStats()
-    console.log("Retrieved stats:", stats)
 
-    const response = {
+    console.log("Stats retrieved:", stats)
+
+    // Always return a successful response with stats data
+    return NextResponse.json({
       success: true,
-      totalServers: stats.totalServers,
-      totalMembers: stats.totalMembers,
-      securityScore: stats.securityScore,
-      lastUpdated: stats.lastUpdated,
-      timestamp: new Date().toISOString(),
-    }
-
-    console.log("Returning stats response:", response)
-    console.log("=== END STATS API ===")
-
-    return NextResponse.json(response)
+      data: stats,
+      error: stats.error || null,
+      isError: stats.isError || false,
+    })
   } catch (error) {
-    console.error("Error in stats API:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-        timestamp: new Date().toISOString(),
+    console.error("Critical error in stats API route:", error)
+
+    // Return fallback stats even on critical error
+    return NextResponse.json({
+      success: false,
+      data: {
+        totalServers: 0,
+        totalMembers: 0,
+        totalApplications: 0,
+        pendingApplications: 0,
+        approvedApplications: 0,
+        rejectedApplications: 0,
       },
-      { status: 500 },
-    )
+      error: "Service temporarily unavailable",
+      isError: true,
+    })
   }
 }

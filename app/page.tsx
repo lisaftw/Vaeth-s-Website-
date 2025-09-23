@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Users, Handshake, Megaphone, Crown, Shield } from "lucide-react"
 import Link from "next/link"
 import { getWebsiteServers } from "@/lib/server-storage"
-import { StatsDashboard } from "@/components/stats-dashboard"
 import { InteractiveServerCard } from "@/components/interactive-server-card"
 import { TypingAnimation } from "@/components/typing-animation"
 import { ModernLogo } from "@/components/modern-logo"
@@ -127,11 +126,6 @@ export default async function HomePage() {
             </Button>
           </div>
         </div>
-      </section>
-
-      {/* Stats Dashboard */}
-      <section id="stats">
-        <StatsDashboard />
       </section>
 
       {/* Why Join Section */}
