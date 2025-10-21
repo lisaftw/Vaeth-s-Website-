@@ -171,17 +171,35 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
   }
 
   const handleUpdateServer = async (formData: FormData, serverId: string) => {
+    console.log("[v0] handleUpdateServer called with serverId:", serverId)
+    console.log("[v0] FormData contents:")
+    for (const [key, value] of formData.entries()) {
+      console.log(`[v0]   ${key}:`, value)
+    }
+
     setIsLoading(true)
+    setMessage("Saving changes...")
+
     try {
       formData.append("serverId", serverId)
+      console.log("[v0] Calling updateServer action...")
+
       const result = await updateServer(formData)
-      setMessage(result.success ? result.message : result.error)
+
+      console.log("[v0] updateServer result:", result)
+
       if (result.success) {
+        setMessage(`✓ ${result.message}`)
+        console.log("[v0] Server updated successfully, reloading data...")
         await loadData()
         setEditingServer(null)
+      } else {
+        setMessage(`✗ ${result.error || "Error updating server"}`)
+        console.error("[v0] Update failed:", result.error)
       }
     } catch (error) {
-      setMessage("Error updating server")
+      console.error("[v0] Exception in handleUpdateServer:", error)
+      setMessage(`✗ Error updating server: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       setIsLoading(false)
     }
@@ -756,7 +774,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                           {(server as any).lead_delegate_discord_id && (
                             <div className="bg-gray-700/30 p-2 rounded col-span-2 min-w-0">
                               <span className="text-gray-400 block text-xs">Delegate ID</span>
-                              <span className="text-white font-mono text-xs break-all">
+                              <span className="text-white font-mono text-xs break-all block">
                                 {(server as any).lead_delegate_discord_id}
                               </span>
                             </div>
