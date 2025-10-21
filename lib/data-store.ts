@@ -1,6 +1,6 @@
 "use server"
 
-import { supabase } from "./supabase"
+import { createClient } from "@/lib/supabase/server"
 
 // Legacy interfaces for backward compatibility
 export interface Application {
@@ -72,6 +72,8 @@ export async function getApplicationsData(): Promise<Application[]> {
   try {
     console.log("Fetching applications from Supabase...")
 
+    const supabase = await createClient()
+
     const { data, error } = await supabase.from("applications").select("*").order("created_at", { ascending: false })
 
     if (error) {
@@ -106,6 +108,8 @@ export async function getServersData(): Promise<Server[]> {
     console.log("=== FETCHING SERVERS FROM SUPABASE ===")
     console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
     console.log("Environment:", process.env.NODE_ENV)
+
+    const supabase = await createClient()
 
     const { data, error } = await supabase.from("servers").select("*").order("created_at", { ascending: false })
 
@@ -142,6 +146,8 @@ export async function addApplication(application: Application): Promise<void> {
   try {
     console.log("=== ADDING APPLICATION TO SUPABASE ===")
     console.log("Application data:", application)
+
+    const supabase = await createClient()
 
     // Check for existing application with same name and invite to prevent duplicates
     const { data: existingApps, error: checkError } = await supabase
@@ -210,6 +216,8 @@ export async function removeApplication(index: number): Promise<Application | nu
     console.log("=== REMOVING APPLICATION ===")
     console.log("Removing application at index:", index)
 
+    const supabase = await createClient()
+
     // Get all pending applications to find the one at the index
     const { data: applications, error: fetchError } = await supabase
       .from("applications")
@@ -257,6 +265,8 @@ export async function addServer(server: Server): Promise<void> {
     console.log("=== ADDING SERVER TO SUPABASE ===")
     console.log("Server data:", server)
 
+    const supabase = await createClient()
+
     const insertData = {
       name: server.name,
       description: server.description,
@@ -291,6 +301,8 @@ export async function addServer(server: Server): Promise<void> {
 export async function removeServer(index: number): Promise<void> {
   try {
     console.log("Removing server at index:", index)
+
+    const supabase = await createClient()
 
     // Get all servers to find the one at the index
     const { data: servers, error: fetchError } = await supabase
@@ -336,6 +348,8 @@ export async function removeServer(index: number): Promise<void> {
 export async function updateServer(index: number, server: Server): Promise<void> {
   try {
     console.log("Updating server at index:", index, server)
+
+    const supabase = await createClient()
 
     // Get all servers to find the one at the index
     const { data: servers, error: fetchError } = await supabase
@@ -391,6 +405,8 @@ export async function approveApplication(index: number): Promise<void> {
   try {
     console.log("=== APPROVING APPLICATION ===")
     console.log("Approving application at index:", index)
+
+    const supabase = await createClient()
 
     // Get all pending applications
     const { data: applications, error: fetchError } = await supabase
@@ -459,6 +475,8 @@ export async function rejectApplication(index: number): Promise<void> {
     console.log("=== REJECTING APPLICATION ===")
     console.log("Rejecting application at index:", index)
 
+    const supabase = await createClient()
+
     // Get all pending applications
     const { data: applications, error: fetchError } = await supabase
       .from("applications")
@@ -508,6 +526,8 @@ export async function rejectApplication(index: number): Promise<void> {
 export async function getStats() {
   try {
     console.log("=== FETCHING STATS FROM SUPABASE ===")
+
+    const supabase = await createClient()
     console.log("Supabase client configured:", !!supabase)
 
     // First check if manual_stats table exists and has data
@@ -550,6 +570,8 @@ export async function getStats() {
 async function calculateStatsFromTables() {
   try {
     console.log("Calculating stats from database tables...")
+
+    const supabase = await createClient()
 
     // Get server count and total members from servers table (no status column filter)
     const { data: serversData, error: serversError } = await supabase.from("servers").select("members")
@@ -599,6 +621,8 @@ export async function approveApplicationToServer(index: number): Promise<boolean
 export async function cleanupDuplicateApplications(): Promise<number> {
   try {
     console.log("=== CLEANING UP DUPLICATE APPLICATIONS ===")
+
+    const supabase = await createClient()
 
     // Get all applications
     const { data: applications, error } = await supabase

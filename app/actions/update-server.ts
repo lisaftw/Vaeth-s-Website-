@@ -1,11 +1,11 @@
 "use server"
 
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
 export async function updateServer(formData: FormData) {
   try {
-    console.log("Update server action called")
+    console.log("[v0] Update server action called")
 
     const serverId = formData.get("serverId") as string
     const name = formData.get("name") as string
@@ -16,7 +16,7 @@ export async function updateServer(formData: FormData) {
     const leadDelegateName = formData.get("leadDelegateName") as string
     const leadDelegateId = formData.get("leadDelegateId") as string
 
-    console.log("Updating server:", serverId, {
+    console.log("[v0] Updating server:", serverId, {
       name,
       description,
       members,
@@ -41,8 +41,10 @@ export async function updateServer(formData: FormData) {
       }
     }
 
+    const supabase = await createClient()
+
     // Update the server in Supabase
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("servers")
       .update({
         name,
@@ -55,27 +57,29 @@ export async function updateServer(formData: FormData) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", serverId)
+      .select()
 
     if (error) {
-      console.error("Error updating server:", error)
+      console.error("[v0] Error updating server:", error)
       return {
         success: false,
-        error: "Failed to update server",
+        error: `Failed to update server: ${error.message}`,
       }
     }
 
-    console.log("Server updated successfully")
+    console.log("[v0] Server updated successfully:", data)
 
     // Invalidate cache
     revalidatePath("/")
     revalidatePath("/admin")
+    revalidatePath("/leaderboard")
 
     return {
       success: true,
       message: `Server "${name}" has been updated successfully.`,
     }
   } catch (error) {
-    console.error("Error in updateServer:", error)
+    console.error("[v0] Error in updateServer:", error)
     return {
       success: false,
       error: "Error updating server: " + String(error),
