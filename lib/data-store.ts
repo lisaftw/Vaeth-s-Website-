@@ -17,6 +17,7 @@ export interface Application {
 }
 
 export interface Server {
+  id: string // UUID from database
   name: string
   description: string
   members: number
@@ -53,6 +54,7 @@ function convertApplicationFromDB(dbApp: any): Application {
 
 function convertServerFromDB(dbServer: any): Server {
   return {
+    id: dbServer.id, // Include the database ID
     name: dbServer.name,
     description: dbServer.description,
     members: dbServer.members,
