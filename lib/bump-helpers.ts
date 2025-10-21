@@ -9,13 +9,13 @@ export async function getServersByBumpOrder() {
       .from("servers")
       .select("*")
       .order("last_bump", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
 
     if (error) {
       console.error("Error fetching servers by bump order:", error)
       return []
     }
 
+    console.log("[v0] Fetched servers by bump order:", data?.length || 0)
     return data || []
   } catch (error) {
     console.error("Error in getServersByBumpOrder:", error)

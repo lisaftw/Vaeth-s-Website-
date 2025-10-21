@@ -1,7 +1,6 @@
 "use server"
 
 import { getServersData, getStats } from "./data-store"
-import { getServersByBumpOrder } from "./bump-helpers"
 
 export interface WebsiteServer {
   name: string
@@ -34,9 +33,8 @@ export async function getWebsiteServers(): Promise<WebsiteServer[]> {
     console.log("Environment:", process.env.NODE_ENV)
     console.log("Timestamp:", new Date().toISOString())
 
-    // Get partner servers from database (await the async call)
-    const partnerServers = await getServersByBumpOrder()
-    console.log("Partner servers from DB (sorted by bump):", partnerServers)
+    const partnerServers = await getServersData()
+    console.log("Partner servers from DB:", partnerServers)
     console.log("Partner servers count:", partnerServers.length)
 
     // Get current stats for main server (await the async call)
