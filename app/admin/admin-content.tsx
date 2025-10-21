@@ -628,8 +628,10 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <div className="bg-gray-700/30 p-3 rounded-lg">
-                          <p className="text-gray-300 text-sm leading-relaxed break-words">{server.description}</p>
+                        <div className="bg-gray-700/30 p-3 rounded-lg max-w-full overflow-hidden">
+                          <p className="text-gray-300 text-sm leading-relaxed break-words whitespace-normal overflow-wrap-anywhere">
+                            {server.description}
+                          </p>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                           <div className="bg-gray-700/30 p-2 rounded">
