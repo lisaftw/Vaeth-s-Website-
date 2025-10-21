@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/bot/node_modules
 
 # next.js
 /.next/
@@ -25,3 +26,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# bot specific
+/bot/.env
+/bot/dist

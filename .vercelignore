@@ -1,0 +1,15 @@
+# Ignore bot folder - it's a separate application
+bot/
+
+# Ignore SQL scripts
+scripts/
+
+# Ignore local env files
+.env.local
+.env*.local
+
+# Ignore test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
