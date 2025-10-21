@@ -64,6 +64,7 @@ function formatDate(dateString?: string): string {
 export function InteractiveServerCard({ server, index }: InteractiveServerCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isJoining, setIsJoining] = useState(false)
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
   const handleJoinServer = async () => {
     setIsJoining(true)
@@ -157,9 +158,27 @@ export function InteractiveServerCard({ server, index }: InteractiveServerCardPr
 
       <CardContent className="relative z-10">
         {/* Description */}
-        <CardDescription className="text-center text-gray-300 text-sm leading-relaxed mb-6 min-h-[3rem] flex items-center justify-center">
-          {server.description}
-        </CardDescription>
+        <div
+          className="mb-6 cursor-pointer"
+          onMouseEnter={() => setIsDescriptionExpanded(true)}
+          onMouseLeave={() => setIsDescriptionExpanded(false)}
+        >
+          <CardDescription
+            className={`
+              text-center text-gray-300 text-sm leading-relaxed 
+              transition-all duration-300
+              ${isDescriptionExpanded ? "line-clamp-none" : "line-clamp-3"}
+            `}
+          >
+            {server.description}
+          </CardDescription>
+          {/* Show indicator if text is long */}
+          {!isDescriptionExpanded && server.description.length > 150 && (
+            <div className="text-center mt-2">
+              <span className="text-xs text-red-400/70 italic">Hover to read more...</span>
+            </div>
+          )}
+        </div>
 
         {/* Lead Delegate Info */}
         {server.leadDelegateName && (
