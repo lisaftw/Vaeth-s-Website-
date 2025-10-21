@@ -17,7 +17,6 @@ export async function updateServer(formData: FormData) {
     const members = Number.parseInt(formData.get("members") as string) || 0
     const invite = formData.get("invite") as string
     const logo = formData.get("logo") as string
-    const leadDelegateName = formData.get("leadDelegateName") as string
     const leadDelegateId = formData.get("leadDelegateId") as string
 
     console.log("[v0] Parsed values:", {
@@ -27,7 +26,6 @@ export async function updateServer(formData: FormData) {
       members,
       invite,
       logo,
-      leadDelegateName,
       leadDelegateId,
     })
 
@@ -57,8 +55,7 @@ export async function updateServer(formData: FormData) {
       members,
       invite,
       logo: logo || null,
-      lead_delegate_name: leadDelegateName || null,
-      lead_delegate_discord_id: leadDelegateId || null,
+      representative_discord_id: leadDelegateId || null,
       updated_at: new Date().toISOString(),
     }
 
