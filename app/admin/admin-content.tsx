@@ -477,23 +477,26 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-white">{server.name}</CardTitle>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center gap-2">
                         {server.verified && <Badge className="bg-green-600">Verified</Badge>}
                         <Button
                           onClick={() => setEditingServer(editingServer === server.id ? null : server.id)}
-                          size="sm"
+                          size="default"
                           variant="outline"
-                          className="border-gray-600"
+                          className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit
                         </Button>
                         <Button
                           onClick={() => handleRemoveServer(server.id, server.name)}
-                          size="sm"
+                          size="default"
                           variant="destructive"
                           disabled={isLoading}
+                          className="bg-red-600 hover:bg-red-700"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
                         </Button>
                       </div>
                     </div>
