@@ -23,6 +23,7 @@ export interface Server {
   members: number
   invite: string
   logo?: string
+  discordIcon?: string
   verified?: boolean
   dateAdded?: string
   tags?: string[]
@@ -60,6 +61,7 @@ function convertServerFromDB(dbServer: any): Server {
     members: dbServer.members,
     invite: dbServer.invite,
     logo: dbServer.logo,
+    discordIcon: dbServer.discord_icon,
     verified: dbServer.verified || false,
     dateAdded: dbServer.created_at,
     tags: dbServer.tags || [],
@@ -275,6 +277,7 @@ export async function addServer(server: Server): Promise<void> {
       members: server.members,
       invite: server.invite,
       logo: server.logo,
+      discord_icon: server.discordIcon,
       verified: server.verified || false,
       tags: server.tags || [],
       representative_discord_id: server.representativeDiscordId,
@@ -335,6 +338,7 @@ export async function updateServerById(serverId: string, updates: Partial<Server
     if (updates.members !== undefined) updateData.members = updates.members
     if (updates.invite !== undefined) updateData.invite = updates.invite
     if (updates.logo !== undefined) updateData.logo = updates.logo
+    if (updates.discordIcon !== undefined) updateData.discord_icon = updates.discordIcon
     if (updates.verified !== undefined) updateData.verified = updates.verified
     if (updates.tags !== undefined) updateData.tags = updates.tags
     if (updates.representativeDiscordId !== undefined)
@@ -440,6 +444,7 @@ export async function updateServer(index: number, server: Server): Promise<void>
         members: server.members,
         invite: server.invite,
         logo: server.logo,
+        discord_icon: server.discordIcon,
         verified: server.verified || false,
         tags: server.tags || [],
         representative_discord_id: server.representativeDiscordId,

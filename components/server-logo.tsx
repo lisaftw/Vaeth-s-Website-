@@ -7,6 +7,7 @@ import { Shield, Star, Users } from "lucide-react"
 interface ServerLogoProps {
   name?: string
   logo?: string
+  discordIcon?: string
   verified?: boolean
   members?: number
   size?: "sm" | "md" | "lg"
@@ -66,6 +67,7 @@ function getServerIcon(name = "Unknown Server") {
 export function ServerLogo({
   name = "Unknown Server",
   logo,
+  discordIcon,
   verified = false,
   members = 0,
   size = "md",
@@ -88,16 +90,18 @@ export function ServerLogo({
   const initials = getServerInitials(name)
   const IconComponent = getServerIcon(name)
 
+  const imageUrl = discordIcon || logo
+
   return (
     <div className={`relative ${className}`}>
       <Avatar className={`${sizeClasses[size]} border-2 border-red-900/30 hover:border-red-600/50 transition-colors`}>
-        {logo && logo.trim() !== "" && (
+        {imageUrl && imageUrl.trim() !== "" && (
           <AvatarImage
-            src={logo || "/placeholder.svg"}
+            src={imageUrl || "/placeholder.svg"}
             alt={`${name} logo`}
             className="object-cover"
             onError={(e) => {
-              console.log(`[v0] Failed to load image for ${name}:`, logo)
+              console.log(`[v0] Failed to load image for ${name}:`, imageUrl)
               e.currentTarget.style.display = "none"
             }}
           />

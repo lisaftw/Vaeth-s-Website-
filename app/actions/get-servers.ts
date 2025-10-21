@@ -9,6 +9,7 @@ export interface ServerData {
   members: number
   invite: string
   logo?: string
+  discordIcon?: string
   verified?: boolean
   dateAdded?: string
   tags?: string[]

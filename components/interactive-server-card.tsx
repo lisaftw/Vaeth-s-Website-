@@ -13,6 +13,7 @@ interface Server {
   members: number
   invite: string
   logo?: string
+  discordIcon?: string
   verified?: boolean
   dateAdded?: string
   tags?: string[]
@@ -106,6 +107,7 @@ export function InteractiveServerCard({ server, index }: InteractiveServerCardPr
           <ServerLogo
             name={server.name}
             logo={server.logo}
+            discordIcon={server.discordIcon}
             verified={server.verified}
             members={server.members}
             size="lg"

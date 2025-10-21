@@ -34,6 +34,7 @@ import { approveApplication } from "@/app/actions/approve-application"
 import { rejectApplication } from "@/app/actions/reject-application"
 import { updateManualStatsAction } from "@/app/actions/update-manual-stats"
 import { StatsUpdateButton } from "@/components/stats-update-button"
+import { fetchDiscordInfo } from "@/app/actions/fetch-discord-info"
 
 interface AdminContentProps {
   onLogout: () => void
@@ -234,6 +235,46 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
       setMessage("Error updating stats")
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const [isFetchingDiscord, setIsFetchingDiscord] = useState(false)
+
+  const handleFetchDiscordInfo = async () => {
+    const inviteInput = document.getElementById("invite") as HTMLInputElement
+    const inviteLink = inviteInput?.value
+
+    if (!inviteLink) {
+      setMessage("Please enter a Discord invite link first")
+      return
+    }
+
+    setIsFetchingDiscord(true)
+    setMessage("Fetching Discord server information...")
+
+    try {
+      const result = await fetchDiscordInfo(inviteLink)
+
+      if (result.success && result.data) {
+        // Auto-fill form fields
+        const nameInput = document.getElementById("name") as HTMLInputElement
+        const membersInput = document.getElementById("members") as HTMLInputElement
+        const descriptionInput = document.getElementById("description") as HTMLTextAreaElement
+        const logoInput = document.getElementById("logo") as HTMLInputElement
+
+        if (nameInput && !nameInput.value) nameInput.value = result.data.name
+        if (membersInput && !membersInput.value) membersInput.value = result.data.members.toString()
+        if (descriptionInput && !descriptionInput.value) descriptionInput.value = result.data.description
+        if (logoInput && result.data.iconUrl) logoInput.value = result.data.iconUrl
+
+        setMessage(`✓ Successfully fetched info for "${result.data.name}"`)
+      } else {
+        setMessage(`✗ ${result.error || "Failed to fetch Discord server info"}`)
+      }
+    } catch (error) {
+      setMessage("✗ Error fetching Discord server info")
+    } finally {
+      setIsFetchingDiscord(false)
     }
   }
 
@@ -451,7 +492,26 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                     <Label htmlFor="invite" className="text-gray-300">
                       Discord Invite
                     </Label>
-                    <Input id="invite" name="invite" required className="bg-gray-700 border-gray-600 text-white" />
+                    <div className="flex gap-2">
+                      <Input
+                        id="invite"
+                        name="invite"
+                        required
+                        className="bg-gray-700 border-gray-600 text-white flex-1"
+                        placeholder="https://discord.gg/..."
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleFetchDiscordInfo}
+                        disabled={isFetchingDiscord}
+                        className="bg-blue-600 hover:bg-blue-700 flex-shrink-0"
+                      >
+                        {isFetchingDiscord ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Fetch Info"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Click "Fetch Info" to auto-fill server details from Discord
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="logo" className="text-gray-300">
