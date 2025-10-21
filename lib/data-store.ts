@@ -298,6 +298,64 @@ export async function addServer(server: Server): Promise<void> {
   }
 }
 
+export async function removeServerById(serverId: string): Promise<void> {
+  try {
+    console.log("[v0] Removing server with ID:", serverId)
+
+    const supabase = await createClient()
+
+    const { error } = await supabase.from("servers").delete().eq("id", serverId)
+
+    if (error) {
+      console.error("[v0] Error removing server:", error)
+      throw new Error(`Failed to remove server: ${error.message}`)
+    }
+
+    console.log("[v0] Server removed successfully from Supabase")
+  } catch (error) {
+    console.error("[v0] Error in removeServerById:", error)
+    throw error
+  }
+}
+
+export async function updateServerById(serverId: string, updates: Partial<Server>): Promise<void> {
+  try {
+    console.log("[v0] Updating server with ID:", serverId, updates)
+
+    const supabase = await createClient()
+
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+    }
+
+    if (updates.name !== undefined) updateData.name = updates.name
+    if (updates.description !== undefined) updateData.description = updates.description
+    if (updates.members !== undefined) updateData.members = updates.members
+    if (updates.invite !== undefined) updateData.invite = updates.invite
+    if (updates.logo !== undefined) updateData.logo = updates.logo
+    if (updates.verified !== undefined) updateData.verified = updates.verified
+    if (updates.tags !== undefined) updateData.tags = updates.tags
+    if (updates.representativeDiscordId !== undefined)
+      updateData.representative_discord_id = updates.representativeDiscordId
+    if (updates.leadDelegateName !== undefined) updateData.lead_delegate_name = updates.leadDelegateName
+    if (updates.leadDelegateId !== undefined) updateData.lead_delegate_discord_id = updates.leadDelegateId
+
+    console.log("[v0] Update data:", updateData)
+
+    const { error } = await supabase.from("servers").update(updateData).eq("id", serverId)
+
+    if (error) {
+      console.error("[v0] Error updating server:", error)
+      throw new Error(`Failed to update server: ${error.message}`)
+    }
+
+    console.log("[v0] Server updated successfully in Supabase")
+  } catch (error) {
+    console.error("[v0] Error in updateServerById:", error)
+    throw error
+  }
+}
+
 export async function removeServer(index: number): Promise<void> {
   try {
     console.log("Removing server at index:", index)
