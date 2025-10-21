@@ -1,7 +1,6 @@
 "use server"
 
 import { supabase } from "./supabase"
-import crypto from "crypto"
 
 export interface AuthToken {
   id: string
@@ -15,7 +14,9 @@ export interface AuthToken {
 
 // Generate a secure random token
 export async function generateToken(): Promise<string> {
-  return crypto.randomBytes(32).toString("hex")
+  const array = new Uint8Array(32)
+  crypto.getRandomValues(array)
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("")
 }
 
 // Create an auth token for a server representative

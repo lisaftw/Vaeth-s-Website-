@@ -6,12 +6,13 @@ export async function GET(request: Request) {
   try {
     // Verify the request is from a cron job (optional: add authorization header check)
     const authHeader = request.headers.get("authorization")
+    const cronSecret = process.env.CRON_SECRET
 
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    console.log("[v0] Cron job triggered: updating all server stats")
+    console.log("[v0] Stats update triggered")
 
     const result = await updateAllServerStats()
 
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    console.error("[v0] Error in cron job:", error)
+    console.error("[v0] Error updating stats:", error)
     return NextResponse.json(
       {
         error: "Failed to update stats",
