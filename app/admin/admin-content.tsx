@@ -473,7 +473,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
             {/* Servers List */}
             <div className="grid gap-4">
               {servers.map((server) => (
-                <Card key={server.id} className="bg-gray-800/50 border-gray-700">
+                <Card key={server.id} className="bg-gray-800/50 border-gray-700 overflow-hidden">
                   {editingServer === server.id ? (
                     // Edit Mode
                     <>
@@ -593,7 +593,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
-                            <CardTitle className="text-white text-lg mb-2">{server.name}</CardTitle>
+                            <CardTitle className="text-white text-lg mb-2 truncate">{server.name}</CardTitle>
                             <div className="flex flex-wrap gap-2">
                               {server.verified && <Badge className="bg-green-600">Verified</Badge>}
                               {server.tags &&
@@ -628,43 +628,52 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <div className="bg-gray-700/30 p-3 rounded-lg max-w-full overflow-hidden">
-                          <p className="text-gray-300 text-sm leading-relaxed break-words whitespace-normal overflow-wrap-anywhere">
-                            {server.description}
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                          <div className="bg-gray-700/30 p-2 rounded">
-                            <span className="text-gray-400 block text-xs">Members</span>
-                            <span className="text-white font-semibold">{server.members.toLocaleString()}</span>
+                        <div className="w-full">
+                          <div className="text-xs text-gray-400 mb-1">Description</div>
+                          <div className="bg-gray-700/30 p-3 rounded-lg w-full">
+                            <p
+                              className="text-gray-300 text-sm leading-relaxed break-words whitespace-pre-wrap"
+                              style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
+                            >
+                              {server.description}
+                            </p>
                           </div>
-                          <div className="bg-gray-700/30 p-2 rounded">
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                          <div className="bg-gray-700/30 p-2 rounded min-w-0">
+                            <span className="text-gray-400 block text-xs">Members</span>
+                            <span className="text-white font-semibold truncate block">
+                              {server.members.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="bg-gray-700/30 p-2 rounded min-w-0">
                             <span className="text-gray-400 block text-xs">Added</span>
-                            <span className="text-white font-semibold">
+                            <span className="text-white font-semibold truncate block">
                               {server.dateAdded ? new Date(server.dateAdded).toLocaleDateString() : "Unknown"}
                             </span>
                           </div>
-                          <div className="bg-gray-700/30 p-2 rounded">
+                          <div className="bg-gray-700/30 p-2 rounded min-w-0">
                             <span className="text-gray-400 block text-xs">Invite</span>
                             <a
                               href={server.invite}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300 font-semibold text-xs"
+                              className="text-blue-400 hover:text-blue-300 font-semibold text-xs truncate block"
                             >
                               Discord Link
                             </a>
                           </div>
                           {(server as any).lead_delegate_name && (
-                            <div className="bg-gray-700/30 p-2 rounded">
+                            <div className="bg-gray-700/30 p-2 rounded min-w-0">
                               <span className="text-gray-400 block text-xs">Lead Delegate</span>
-                              <span className="text-white font-semibold text-xs">
+                              <span className="text-white font-semibold text-xs truncate block">
                                 {(server as any).lead_delegate_name}
                               </span>
                             </div>
                           )}
                           {(server as any).lead_delegate_discord_id && (
-                            <div className="bg-gray-700/30 p-2 rounded col-span-2">
+                            <div className="bg-gray-700/30 p-2 rounded col-span-2 min-w-0">
                               <span className="text-gray-400 block text-xs">Delegate ID</span>
                               <span className="text-white font-mono text-xs break-all">
                                 {(server as any).lead_delegate_discord_id}
@@ -672,9 +681,10 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                             </div>
                           )}
                         </div>
-                        <div className="bg-gray-700/30 p-2 rounded">
+
+                        <div className="bg-gray-700/30 p-2 rounded w-full">
                           <span className="text-gray-400 block text-xs mb-1">Server ID</span>
-                          <span className="text-white font-mono text-xs break-all">{server.id}</span>
+                          <span className="text-white font-mono text-xs break-all block">{server.id}</span>
                         </div>
                       </CardContent>
                     </>
