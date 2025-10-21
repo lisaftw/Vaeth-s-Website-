@@ -91,7 +91,16 @@ export function ServerLogo({
   return (
     <div className={`relative ${className}`}>
       <Avatar className={`${sizeClasses[size]} border-2 border-red-900/30 hover:border-red-600/50 transition-colors`}>
-        {logo ? <AvatarImage src={logo || "/placeholder.svg"} alt={`${name} logo`} className="object-cover" /> : null}
+        <AvatarImage
+          src={logo || "/placeholder.svg"}
+          alt={`${name} logo`}
+          className="object-cover"
+          onError={(e) => {
+            // Hide broken images and show fallback
+            console.log(`[v0] Failed to load image for ${name}:`, logo)
+            e.currentTarget.style.display = "none"
+          }}
+        />
         <AvatarFallback className={`${colorClass} text-white ${textSizes[size]} font-bold relative overflow-hidden`}>
           {/* Background pattern */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
