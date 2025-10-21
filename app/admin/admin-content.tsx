@@ -471,195 +471,212 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
             </Card>
 
             {/* Servers List */}
-            <div className="grid gap-6">
+            <div className="grid gap-4">
               {servers.map((server) => (
                 <Card key={server.id} className="bg-gray-800/50 border-gray-700">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-white">{server.name}</CardTitle>
-                      <div className="flex items-center gap-2">
-                        {server.verified && <Badge className="bg-green-600">Verified</Badge>}
-                        <Button
-                          onClick={() => setEditingServer(editingServer === server.id ? null : server.id)}
-                          size="default"
-                          variant="outline"
-                          className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+                  {editingServer === server.id ? (
+                    // Edit Mode
+                    <>
+                      <CardHeader>
+                        <CardTitle className="text-white flex items-center">
+                          <Edit className="w-5 h-5 mr-2" />
+                          Editing: {server.name}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <form
+                          action={(formData) => handleUpdateServer(formData, server.id)}
+                          className="grid grid-cols-1 md:grid-cols-2 gap-4"
                         >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit
-                        </Button>
-                        <Button
-                          onClick={() => handleRemoveServer(server.id, server.name)}
-                          size="default"
-                          variant="destructive"
-                          disabled={isLoading}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {editingServer === server.id ? (
-                      <form
-                        action={(formData) => handleUpdateServer(formData, server.id)}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                      >
-                        <div>
-                          <Label htmlFor={`edit-name-${server.id}`} className="text-gray-300">
-                            Server Name
-                          </Label>
-                          <Input
-                            id={`edit-name-${server.id}`}
-                            name="name"
-                            defaultValue={server.name}
-                            required
-                            className="bg-gray-700 border-gray-600 text-white"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`edit-members-${server.id}`} className="text-gray-300">
-                            Members
-                          </Label>
-                          <Input
-                            id={`edit-members-${server.id}`}
-                            name="members"
-                            type="number"
-                            defaultValue={server.members}
-                            required
-                            className="bg-gray-700 border-gray-600 text-white"
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label htmlFor={`edit-description-${server.id}`} className="text-gray-300">
-                            Description
-                          </Label>
-                          <Textarea
-                            id={`edit-description-${server.id}`}
-                            name="description"
-                            defaultValue={server.description}
-                            required
-                            className="bg-gray-700 border-gray-600 text-white"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`edit-invite-${server.id}`} className="text-gray-300">
-                            Discord Invite
-                          </Label>
-                          <Input
-                            id={`edit-invite-${server.id}`}
-                            name="invite"
-                            defaultValue={server.invite}
-                            required
-                            className="bg-gray-700 border-gray-600 text-white"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`edit-logo-${server.id}`} className="text-gray-300">
-                            Logo URL
-                          </Label>
-                          <Input
-                            id={`edit-logo-${server.id}`}
-                            name="logo"
-                            defaultValue={server.logo || ""}
-                            className="bg-gray-700 border-gray-600 text-white"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`edit-leadDelegateName-${server.id}`} className="text-gray-300">
-                            Lead Delegate Name
-                          </Label>
-                          <Input
-                            id={`edit-leadDelegateName-${server.id}`}
-                            name="leadDelegateName"
-                            defaultValue={(server as any).lead_delegate_name || ""}
-                            className="bg-gray-700 border-gray-600 text-white"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`edit-leadDelegateId-${server.id}`} className="text-gray-300">
-                            Lead Delegate Discord ID
-                          </Label>
-                          <Input
-                            id={`edit-leadDelegateId-${server.id}`}
-                            name="leadDelegateId"
-                            defaultValue={(server as any).lead_delegate_discord_id || ""}
-                            className="bg-gray-700 border-gray-600 text-white"
-                          />
-                        </div>
-                        <div className="md:col-span-2 flex space-x-2">
-                          <Button type="submit" disabled={isLoading} className="bg-green-600 hover:bg-green-700">
-                            <Check className="w-4 h-4 mr-2" />
-                            Save Changes
-                          </Button>
-                          <Button
-                            type="button"
-                            onClick={() => setEditingServer(null)}
-                            variant="outline"
-                            className="border-gray-600"
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </form>
-                    ) : (
-                      <div className="space-y-4">
-                        <p className="text-gray-300">{server.description}</p>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="text-gray-400">Members:</span>
-                            <span className="text-white ml-2">{server.members.toLocaleString()}</span>
+                            <Label htmlFor={`edit-name-${server.id}`} className="text-gray-300">
+                              Server Name
+                            </Label>
+                            <Input
+                              id={`edit-name-${server.id}`}
+                              name="name"
+                              defaultValue={server.name}
+                              required
+                              className="bg-gray-700 border-gray-600 text-white"
+                            />
                           </div>
                           <div>
-                            <span className="text-gray-400">Server ID:</span>
-                            <span className="text-white ml-2 font-mono text-xs">{server.id}</span>
+                            <Label htmlFor={`edit-members-${server.id}`} className="text-gray-300">
+                              Members
+                            </Label>
+                            <Input
+                              id={`edit-members-${server.id}`}
+                              name="members"
+                              type="number"
+                              defaultValue={server.members}
+                              required
+                              className="bg-gray-700 border-gray-600 text-white"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <Label htmlFor={`edit-description-${server.id}`} className="text-gray-300">
+                              Description
+                            </Label>
+                            <Textarea
+                              id={`edit-description-${server.id}`}
+                              name="description"
+                              defaultValue={server.description}
+                              required
+                              className="bg-gray-700 border-gray-600 text-white min-h-[100px]"
+                            />
                           </div>
                           <div>
-                            <span className="text-gray-400">Added:</span>
-                            <span className="text-white ml-2">
+                            <Label htmlFor={`edit-invite-${server.id}`} className="text-gray-300">
+                              Discord Invite
+                            </Label>
+                            <Input
+                              id={`edit-invite-${server.id}`}
+                              name="invite"
+                              defaultValue={server.invite}
+                              required
+                              className="bg-gray-700 border-gray-600 text-white"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`edit-logo-${server.id}`} className="text-gray-300">
+                              Logo URL
+                            </Label>
+                            <Input
+                              id={`edit-logo-${server.id}`}
+                              name="logo"
+                              defaultValue={server.logo || ""}
+                              className="bg-gray-700 border-gray-600 text-white"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`edit-leadDelegateName-${server.id}`} className="text-gray-300">
+                              Lead Delegate Name
+                            </Label>
+                            <Input
+                              id={`edit-leadDelegateName-${server.id}`}
+                              name="leadDelegateName"
+                              defaultValue={(server as any).lead_delegate_name || ""}
+                              className="bg-gray-700 border-gray-600 text-white"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`edit-leadDelegateId-${server.id}`} className="text-gray-300">
+                              Lead Delegate Discord ID
+                            </Label>
+                            <Input
+                              id={`edit-leadDelegateId-${server.id}`}
+                              name="leadDelegateId"
+                              defaultValue={(server as any).lead_delegate_discord_id || ""}
+                              className="bg-gray-700 border-gray-600 text-white"
+                            />
+                          </div>
+                          <div className="md:col-span-2 flex space-x-2">
+                            <Button type="submit" disabled={isLoading} className="bg-green-600 hover:bg-green-700">
+                              <Check className="w-4 h-4 mr-2" />
+                              Save Changes
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => setEditingServer(null)}
+                              variant="outline"
+                              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </form>
+                      </CardContent>
+                    </>
+                  ) : (
+                    // View Mode
+                    <>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-white text-lg mb-2">{server.name}</CardTitle>
+                            <div className="flex flex-wrap gap-2">
+                              {server.verified && <Badge className="bg-green-600">Verified</Badge>}
+                              {server.tags &&
+                                server.tags.map((tag, tagIndex) => (
+                                  <Badge key={tagIndex} variant="outline" className="border-gray-600 text-gray-300">
+                                    {tag}
+                                  </Badge>
+                                ))}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button
+                              onClick={() => setEditingServer(server.id)}
+                              size="sm"
+                              variant="outline"
+                              className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              onClick={() => handleRemoveServer(server.id, server.name)}
+                              size="sm"
+                              variant="destructive"
+                              disabled={isLoading}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="bg-gray-700/30 p-3 rounded-lg">
+                          <p className="text-gray-300 text-sm leading-relaxed break-words">{server.description}</p>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                          <div className="bg-gray-700/30 p-2 rounded">
+                            <span className="text-gray-400 block text-xs">Members</span>
+                            <span className="text-white font-semibold">{server.members.toLocaleString()}</span>
+                          </div>
+                          <div className="bg-gray-700/30 p-2 rounded">
+                            <span className="text-gray-400 block text-xs">Added</span>
+                            <span className="text-white font-semibold">
                               {server.dateAdded ? new Date(server.dateAdded).toLocaleDateString() : "Unknown"}
                             </span>
                           </div>
-                          <div>
-                            <span className="text-gray-400">Invite:</span>
+                          <div className="bg-gray-700/30 p-2 rounded">
+                            <span className="text-gray-400 block text-xs">Invite</span>
                             <a
                               href={server.invite}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300 ml-2 text-xs"
+                              className="text-blue-400 hover:text-blue-300 font-semibold text-xs"
                             >
                               Discord Link
                             </a>
                           </div>
                           {(server as any).lead_delegate_name && (
-                            <div>
-                              <span className="text-gray-400">Lead Delegate:</span>
-                              <span className="text-white ml-2">{(server as any).lead_delegate_name}</span>
+                            <div className="bg-gray-700/30 p-2 rounded">
+                              <span className="text-gray-400 block text-xs">Lead Delegate</span>
+                              <span className="text-white font-semibold text-xs">
+                                {(server as any).lead_delegate_name}
+                              </span>
                             </div>
                           )}
                           {(server as any).lead_delegate_discord_id && (
-                            <div>
-                              <span className="text-gray-400">Delegate ID:</span>
-                              <span className="text-white ml-2 font-mono text-xs">
+                            <div className="bg-gray-700/30 p-2 rounded col-span-2">
+                              <span className="text-gray-400 block text-xs">Delegate ID</span>
+                              <span className="text-white font-mono text-xs break-all">
                                 {(server as any).lead_delegate_discord_id}
                               </span>
                             </div>
                           )}
                         </div>
-                        {server.tags && server.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {server.tags.map((tag, tagIndex) => (
-                              <Badge key={tagIndex} variant="outline" className="border-gray-600 text-gray-300">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
+                        <div className="bg-gray-700/30 p-2 rounded">
+                          <span className="text-gray-400 block text-xs mb-1">Server ID</span>
+                          <span className="text-white font-mono text-xs break-all">{server.id}</span>
+                        </div>
+                      </CardContent>
+                    </>
+                  )}
                 </Card>
               ))}
             </div>
