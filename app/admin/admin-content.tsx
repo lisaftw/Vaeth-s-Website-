@@ -651,9 +651,9 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                       <CardContent className="space-y-3">
                         <div className="w-full">
                           <div className="text-xs text-gray-400 mb-1">Description</div>
-                          <div className="bg-gray-700/30 p-3 rounded-lg w-full">
+                          <div className="bg-gray-700/30 p-3 rounded-lg w-full group cursor-pointer transition-all duration-300 ease-in-out hover:bg-gray-700/50">
                             <p
-                              className="text-gray-300 text-sm leading-relaxed break-words whitespace-pre-wrap"
+                              className="text-gray-300 text-sm leading-relaxed break-words whitespace-pre-wrap line-clamp-3 group-hover:line-clamp-none transition-all duration-300 ease-in-out"
                               style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
                             >
                               {server.description}
