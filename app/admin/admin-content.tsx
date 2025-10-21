@@ -67,9 +67,9 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
       if (statsResponse.ok) {
         const statsData = await statsResponse.json()
         setCurrentStats({
-          totalServers: statsData.totalServers,
-          totalMembers: statsData.totalMembers,
-          securityScore: statsData.securityScore,
+          totalServers: statsData.totalServers ?? 1,
+          totalMembers: statsData.totalMembers ?? 250,
+          securityScore: statsData.securityScore ?? 100,
         })
       }
     } catch (error) {
@@ -686,7 +686,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                       name="totalServers"
                       type="number"
                       min="1"
-                      defaultValue={currentStats.totalServers.toString()}
+                      defaultValue={(currentStats.totalServers ?? 1).toString()}
                       required
                       className="bg-gray-700 border-gray-600 text-white"
                     />
@@ -700,7 +700,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                       name="totalMembers"
                       type="number"
                       min="1"
-                      defaultValue={currentStats.totalMembers.toString()}
+                      defaultValue={(currentStats.totalMembers ?? 250).toString()}
                       required
                       className="bg-gray-700 border-gray-600 text-white"
                     />
@@ -715,7 +715,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                       type="number"
                       min="0"
                       max="100"
-                      defaultValue={currentStats.securityScore.toString()}
+                      defaultValue={(currentStats.securityScore ?? 100).toString()}
                       required
                       className="bg-gray-700 border-gray-600 text-white"
                     />
