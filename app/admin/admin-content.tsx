@@ -130,19 +130,40 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
   }
 
   const handleRemoveServer = async (serverId: string, serverName: string) => {
-    if (!confirm(`Are you sure you want to remove "${serverName}"? This cannot be undone.`)) return
+    console.log("[v0] Delete button clicked for server:", serverName, "ID:", serverId)
 
+    if (!confirm(`Are you sure you want to remove "${serverName}"? This cannot be undone.`)) {
+      console.log("[v0] Delete cancelled by user")
+      return
+    }
+
+    console.log("[v0] User confirmed deletion, proceeding...")
     setIsLoading(true)
+    setMessage("") // Clear previous messages
+
     try {
       const formData = new FormData()
       formData.append("serverId", serverId)
+
+      console.log("[v0] Calling removeServer action with serverId:", serverId)
       const result = await removeServer(formData)
-      setMessage(result.success ? result.message : result.error || "Error removing server")
+
+      console.log("[v0] removeServer result:", result)
+
       if (result.success) {
+        setMessage(`✓ ${result.message}`)
+        console.log("[v0] Server deleted successfully, reloading data...")
+        // Force reload the data
         await loadData()
+        // Also force a page refresh to clear any cached data
+        window.location.reload()
+      } else {
+        setMessage(`✗ ${result.error || "Error removing server"}`)
+        console.error("[v0] Delete failed:", result.error)
       }
     } catch (error) {
-      setMessage("Error removing server")
+      console.error("[v0] Exception in handleRemoveServer:", error)
+      setMessage(`✗ Error removing server: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       setIsLoading(false)
     }
