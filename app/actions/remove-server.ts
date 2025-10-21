@@ -1,6 +1,6 @@
 "use server"
 
-import { createAdminClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase-admin"
 import { revalidatePath } from "next/cache"
 
 export async function removeServer(formData: FormData) {
@@ -19,7 +19,7 @@ export async function removeServer(formData: FormData) {
 
     console.log("[v0] Attempting to delete server with ID:", serverId)
 
-    const supabase = await createAdminClient()
+    const supabase = createAdminClient()
 
     // Delete the server from database
     const { data, error } = await supabase.from("servers").delete().eq("id", serverId).select()

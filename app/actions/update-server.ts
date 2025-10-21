@@ -1,6 +1,6 @@
 "use server"
 
-import { createAdminClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase-admin"
 import { revalidatePath } from "next/cache"
 
 export async function updateServer(formData: FormData) {
@@ -41,7 +41,7 @@ export async function updateServer(formData: FormData) {
       }
     }
 
-    const supabase = await createAdminClient()
+    const supabase = createAdminClient()
 
     // Update the server in Supabase
     const { data, error } = await supabase
