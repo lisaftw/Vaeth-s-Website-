@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, ExternalLink, Shield, Star, Calendar } from "lucide-react"
+import { Users, ExternalLink, Shield, Star, Calendar, User, TrendingUp } from "lucide-react"
 import { ServerLogo } from "./server-logo"
 
 interface Server {
@@ -17,6 +17,10 @@ interface Server {
   dateAdded?: string
   tags?: string[]
   isMainServer?: boolean
+  leadDelegateName?: string
+  leadDelegateDiscordId?: string
+  bumpCount?: number
+  lastBump?: string
 }
 
 interface InteractiveServerCardProps {
@@ -26,15 +30,9 @@ interface InteractiveServerCardProps {
 
 // Helper function to ensure proper Discord invite URL format
 function getDiscordInviteUrl(invite: string): string {
-  if (!invite) return "https://discord.gg/yXTrkPPQAK" // Fallback to main server
-
-  // If it's already a full URL, return as is
+  if (!invite) return "https://discord.gg/yXTrkPPQAK"
   if (invite.startsWith("http")) return invite
-
-  // If it's just the invite code, prepend discord.gg
   if (invite.includes("discord.gg/")) return `https://${invite}`
-
-  // If it's just the code, create full URL
   return `https://discord.gg/${invite}`
 }
 
@@ -73,15 +71,11 @@ export function InteractiveServerCard({ server, index }: InteractiveServerCardPr
     try {
       const discordUrl = getDiscordInviteUrl(server.invite)
       console.log("Opening Discord invite:", discordUrl)
-
-      // Open in new tab with security attributes
       window.open(discordUrl, "_blank", "noopener,noreferrer")
     } catch (error) {
       console.error("Error opening Discord invite:", error)
-      // Fallback to main server
       window.open("https://discord.gg/yXTrkPPQAK", "_blank", "noopener,noreferrer")
     } finally {
-      // Reset joining state after a short delay
       setTimeout(() => setIsJoining(false), 1000)
     }
   }
@@ -151,6 +145,14 @@ export function InteractiveServerCard({ server, index }: InteractiveServerCardPr
             ))}
           </div>
         )}
+
+        {/* Bump Count */}
+        {server.bumpCount && server.bumpCount > 0 && (
+          <div className="flex items-center justify-center gap-2 text-yellow-400 text-xs">
+            <TrendingUp className="w-3 h-3" />
+            <span>Bumped {server.bumpCount} times</span>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="relative z-10">
@@ -158,6 +160,17 @@ export function InteractiveServerCard({ server, index }: InteractiveServerCardPr
         <CardDescription className="text-center text-gray-300 text-sm leading-relaxed mb-6 min-h-[3rem] flex items-center justify-center">
           {server.description}
         </CardDescription>
+
+        {/* Lead Delegate Info */}
+        {server.leadDelegateName && (
+          <div className="mb-6 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+            <div className="flex items-center justify-center gap-2 text-gray-400 text-xs">
+              <User className="w-3 h-3" />
+              <span className="font-semibold text-gray-300">Lead Delegate:</span>
+              <span>{server.leadDelegateName}</span>
+            </div>
+          </div>
+        )}
 
         {/* Server Info */}
         <div className="flex items-center justify-center gap-4 text-xs text-gray-500 mb-6">

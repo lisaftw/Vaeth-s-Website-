@@ -1,29 +1,39 @@
 "use server"
 
-import { removeServer as removeServerFromStore } from "@/lib/data-store"
+import { supabase } from "@/lib/supabase"
 import { revalidatePath } from "next/cache"
 
 export async function removeServer(formData: FormData) {
   try {
     console.log("Remove server action called")
 
-    const index = Number.parseInt(formData.get("index") as string)
-    console.log("Removing server at index:", index)
+    const serverId = formData.get("serverId") as string
 
-    if (isNaN(index) || index < 0) {
+    if (!serverId) {
       return {
         success: false,
-        error: "Invalid server index",
+        error: "Server ID is required",
       }
     }
 
-    await removeServerFromStore(index)
+    console.log("Removing server with ID:", serverId)
+
+    // Delete the server from database
+    const { error } = await supabase.from("servers").delete().eq("id", serverId)
+
+    if (error) {
+      console.error("Supabase error removing server:", error)
+      return {
+        success: false,
+        error: `Failed to remove server: ${error.message}`,
+      }
+    }
+
+    console.log("Server removed successfully")
 
     // Invalidate cache for homepage and admin pages
     revalidatePath("/")
     revalidatePath("/admin")
-
-    console.log("Server removed and cache invalidated")
 
     return {
       success: true,

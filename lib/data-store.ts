@@ -26,6 +26,8 @@ export interface Server {
   dateAdded?: string
   tags?: string[]
   representativeDiscordId?: string
+  leadDelegateName?: string
+  leadDelegateId?: string
 }
 
 // Convert database row to legacy format
@@ -60,6 +62,8 @@ function convertServerFromDB(dbServer: any): Server {
     dateAdded: dbServer.created_at,
     tags: dbServer.tags || [],
     representativeDiscordId: dbServer.representative_discord_id,
+    leadDelegateName: dbServer.lead_delegate_name,
+    leadDelegateId: dbServer.lead_delegate_discord_id,
   }
 }
 
@@ -262,6 +266,8 @@ export async function addServer(server: Server): Promise<void> {
       verified: server.verified || false,
       tags: server.tags || [],
       representative_discord_id: server.representativeDiscordId,
+      lead_delegate_name: server.leadDelegateName,
+      lead_delegate_discord_id: server.leadDelegateId,
       created_at: new Date().toISOString(),
     }
 
@@ -363,6 +369,8 @@ export async function updateServer(index: number, server: Server): Promise<void>
         verified: server.verified || false,
         tags: server.tags || [],
         representative_discord_id: server.representativeDiscordId,
+        lead_delegate_name: server.leadDelegateName,
+        lead_delegate_discord_id: server.leadDelegateId,
         updated_at: new Date().toISOString(),
       })
       .eq("id", serverToUpdate.id)

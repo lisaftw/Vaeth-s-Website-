@@ -33,6 +33,7 @@ import { updateServer } from "@/app/actions/update-server"
 import { approveApplication } from "@/app/actions/approve-application"
 import { rejectApplication } from "@/app/actions/reject-application"
 import { updateManualStatsAction } from "@/app/actions/update-manual-stats"
+import { StatsUpdateButton } from "@/components/stats-update-button"
 
 interface AdminContentProps {
   onLogout: () => void
@@ -44,7 +45,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
   const [servers, setServers] = useState<ServerData[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState("")
-  const [editingServer, setEditingServer] = useState<number | null>(null)
+  const [editingServer, setEditingServer] = useState<string | null>(null)
   const [currentStats, setCurrentStats] = useState({
     totalServers: 1,
     totalMembers: 250,
@@ -94,14 +95,14 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ password: "unified2024" }),
+        body: JSON.stringify({ password: "TheRealms&Sovereign3301!" }),
       })
 
       const result = await response.json()
       setMessage(result.message)
 
       if (result.success) {
-        await loadData() // Reload data to show updated list
+        await loadData()
       }
     } catch (error) {
       setMessage("Error cleaning up duplicates")
@@ -118,7 +119,6 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
       setMessage(result.success ? result.message : result.error)
       if (result.success) {
         await loadData()
-        // Reset form
         const form = document.getElementById("add-server-form") as HTMLFormElement
         form?.reset()
       }
@@ -129,15 +129,15 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
     }
   }
 
-  const handleRemoveServer = async (index: number) => {
-    if (!confirm("Are you sure you want to remove this server?")) return
+  const handleRemoveServer = async (serverId: string, serverName: string) => {
+    if (!confirm(`Are you sure you want to remove "${serverName}"? This cannot be undone.`)) return
 
     setIsLoading(true)
     try {
       const formData = new FormData()
-      formData.append("index", index.toString())
+      formData.append("serverId", serverId)
       const result = await removeServer(formData)
-      setMessage(result.success ? result.message : result.error)
+      setMessage(result.success ? result.message : result.error || "Error removing server")
       if (result.success) {
         await loadData()
       }
@@ -148,10 +148,10 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
     }
   }
 
-  const handleUpdateServer = async (formData: FormData, index: number) => {
+  const handleUpdateServer = async (formData: FormData, serverId: string) => {
     setIsLoading(true)
     try {
-      formData.append("index", index.toString())
+      formData.append("serverId", serverId)
       const result = await updateServer(formData)
       setMessage(result.success ? result.message : result.error)
       if (result.success) {
@@ -207,7 +207,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
       const result = await updateManualStatsAction(formData)
       setMessage(result.success ? result.message : result.message)
       if (result.success) {
-        await loadData() // Reload data to get updated stats
+        await loadData()
       }
     } catch (error) {
       setMessage("Error updating stats")
@@ -438,6 +438,28 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                     </Label>
                     <Input id="logo" name="logo" className="bg-gray-700 border-gray-600 text-white" />
                   </div>
+                  <div>
+                    <Label htmlFor="leadDelegateName" className="text-gray-300">
+                      Lead Delegate Name
+                    </Label>
+                    <Input
+                      id="leadDelegateName"
+                      name="leadDelegateName"
+                      placeholder="e.g., John Doe"
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="leadDelegateId" className="text-gray-300">
+                      Lead Delegate Discord ID
+                    </Label>
+                    <Input
+                      id="leadDelegateId"
+                      name="leadDelegateId"
+                      placeholder="e.g., 123456789012345678"
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                  </div>
                   <div className="md:col-span-2">
                     <Button type="submit" disabled={isLoading} className="bg-red-600 hover:bg-red-700">
                       <Plus className="w-4 h-4 mr-2" />
@@ -450,15 +472,15 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
 
             {/* Servers List */}
             <div className="grid gap-6">
-              {servers.map((server, index) => (
-                <Card key={index} className="bg-gray-800/50 border-gray-700">
+              {servers.map((server) => (
+                <Card key={server.id} className="bg-gray-800/50 border-gray-700">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-white">{server.name}</CardTitle>
                       <div className="flex items-center space-x-2">
                         {server.verified && <Badge className="bg-green-600">Verified</Badge>}
                         <Button
-                          onClick={() => setEditingServer(editingServer === index ? null : index)}
+                          onClick={() => setEditingServer(editingServer === server.id ? null : server.id)}
                           size="sm"
                           variant="outline"
                           className="border-gray-600"
@@ -466,7 +488,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
-                          onClick={() => handleRemoveServer(index)}
+                          onClick={() => handleRemoveServer(server.id, server.name)}
                           size="sm"
                           variant="destructive"
                           disabled={isLoading}
@@ -477,17 +499,17 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {editingServer === index ? (
+                    {editingServer === server.id ? (
                       <form
-                        action={(formData) => handleUpdateServer(formData, index)}
+                        action={(formData) => handleUpdateServer(formData, server.id)}
                         className="grid grid-cols-1 md:grid-cols-2 gap-4"
                       >
                         <div>
-                          <Label htmlFor={`edit-name-${index}`} className="text-gray-300">
+                          <Label htmlFor={`edit-name-${server.id}`} className="text-gray-300">
                             Server Name
                           </Label>
                           <Input
-                            id={`edit-name-${index}`}
+                            id={`edit-name-${server.id}`}
                             name="name"
                             defaultValue={server.name}
                             required
@@ -495,11 +517,11 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                           />
                         </div>
                         <div>
-                          <Label htmlFor={`edit-members-${index}`} className="text-gray-300">
+                          <Label htmlFor={`edit-members-${server.id}`} className="text-gray-300">
                             Members
                           </Label>
                           <Input
-                            id={`edit-members-${index}`}
+                            id={`edit-members-${server.id}`}
                             name="members"
                             type="number"
                             defaultValue={server.members}
@@ -508,11 +530,11 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                           />
                         </div>
                         <div className="md:col-span-2">
-                          <Label htmlFor={`edit-description-${index}`} className="text-gray-300">
+                          <Label htmlFor={`edit-description-${server.id}`} className="text-gray-300">
                             Description
                           </Label>
                           <Textarea
-                            id={`edit-description-${index}`}
+                            id={`edit-description-${server.id}`}
                             name="description"
                             defaultValue={server.description}
                             required
@@ -520,11 +542,11 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                           />
                         </div>
                         <div>
-                          <Label htmlFor={`edit-invite-${index}`} className="text-gray-300">
+                          <Label htmlFor={`edit-invite-${server.id}`} className="text-gray-300">
                             Discord Invite
                           </Label>
                           <Input
-                            id={`edit-invite-${index}`}
+                            id={`edit-invite-${server.id}`}
                             name="invite"
                             defaultValue={server.invite}
                             required
@@ -532,13 +554,35 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                           />
                         </div>
                         <div>
-                          <Label htmlFor={`edit-logo-${index}`} className="text-gray-300">
+                          <Label htmlFor={`edit-logo-${server.id}`} className="text-gray-300">
                             Logo URL
                           </Label>
                           <Input
-                            id={`edit-logo-${index}`}
+                            id={`edit-logo-${server.id}`}
                             name="logo"
                             defaultValue={server.logo || ""}
+                            className="bg-gray-700 border-gray-600 text-white"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`edit-leadDelegateName-${server.id}`} className="text-gray-300">
+                            Lead Delegate Name
+                          </Label>
+                          <Input
+                            id={`edit-leadDelegateName-${server.id}`}
+                            name="leadDelegateName"
+                            defaultValue={(server as any).lead_delegate_name || ""}
+                            className="bg-gray-700 border-gray-600 text-white"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`edit-leadDelegateId-${server.id}`} className="text-gray-300">
+                            Lead Delegate Discord ID
+                          </Label>
+                          <Input
+                            id={`edit-leadDelegateId-${server.id}`}
+                            name="leadDelegateId"
+                            defaultValue={(server as any).lead_delegate_discord_id || ""}
                             className="bg-gray-700 border-gray-600 text-white"
                           />
                         </div>
@@ -566,11 +610,40 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                             <span className="text-white ml-2">{server.members.toLocaleString()}</span>
                           </div>
                           <div>
+                            <span className="text-gray-400">Server ID:</span>
+                            <span className="text-white ml-2 font-mono text-xs">{server.id}</span>
+                          </div>
+                          <div>
                             <span className="text-gray-400">Added:</span>
                             <span className="text-white ml-2">
                               {server.dateAdded ? new Date(server.dateAdded).toLocaleDateString() : "Unknown"}
                             </span>
                           </div>
+                          <div>
+                            <span className="text-gray-400">Invite:</span>
+                            <a
+                              href={server.invite}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-400 hover:text-blue-300 ml-2 text-xs"
+                            >
+                              Discord Link
+                            </a>
+                          </div>
+                          {(server as any).lead_delegate_name && (
+                            <div>
+                              <span className="text-gray-400">Lead Delegate:</span>
+                              <span className="text-white ml-2">{(server as any).lead_delegate_name}</span>
+                            </div>
+                          )}
+                          {(server as any).lead_delegate_discord_id && (
+                            <div>
+                              <span className="text-gray-400">Delegate ID:</span>
+                              <span className="text-white ml-2 font-mono text-xs">
+                                {(server as any).lead_delegate_discord_id}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         {server.tags && server.tags.length > 0 && (
                           <div className="flex flex-wrap gap-2">
@@ -593,7 +666,10 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
         {/* Statistics Tab */}
         {activeTab === "stats" && (
           <div className="space-y-6">
-            <h2 className="text-xl font-bold text-white">Statistics Management</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white">Statistics Management</h2>
+              <StatsUpdateButton />
+            </div>
 
             <Card className="bg-gray-800/50 border-gray-700">
               <CardHeader>
@@ -696,6 +772,7 @@ export default function AdminContent({ onLogout }: AdminContentProps) {
                   <p>• All changes are automatically saved</p>
                   <p>• Statistics are updated in real-time</p>
                   <p>• Duplicate applications can be cleaned up using the cleanup button</p>
+                  <p>• Servers can be removed using the trash icon in the servers tab</p>
                 </div>
               </CardContent>
             </Card>

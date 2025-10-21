@@ -12,11 +12,13 @@ export async function addServer(formData: FormData) {
     const members = Number.parseInt(formData.get("members") as string)
     const invite = formData.get("invite") as string
     const logo = formData.get("logo") as string
+    const leadDelegateName = formData.get("leadDelegateName") as string
+    const leadDelegateId = formData.get("leadDelegateId") as string
 
     if (!name || !description || !members || !invite) {
       return {
         success: false,
-        error: "All fields except logo are required",
+        error: "All fields except logo and lead delegate are required",
       }
     }
 
@@ -28,6 +30,8 @@ export async function addServer(formData: FormData) {
       logo: logo || undefined,
       verified: false,
       tags: ["Partner"],
+      leadDelegateName: leadDelegateName || undefined,
+      leadDelegateId: leadDelegateId || undefined,
     }
 
     console.log("Adding server:", server)

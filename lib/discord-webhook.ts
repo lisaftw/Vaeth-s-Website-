@@ -60,3 +60,57 @@ export async function sendDiscordWebhook(data: WebhookData): Promise<void> {
     throw error
   }
 }
+
+export async function sendDiscordNotification(application: {
+  name: string
+  description: string
+  members: number
+  invite: string
+  logo?: string
+  representativeDiscordId?: string
+}): Promise<boolean> {
+  try {
+    const webhookData: WebhookData = {
+      title: "🆕 New Server Application",
+      description: `**${application.name}** has applied to join the alliance!`,
+      color: 0xff0000, // Red color for Unified Realms
+      fields: [
+        {
+          name: "Description",
+          value: application.description,
+          inline: false,
+        },
+        {
+          name: "Members",
+          value: application.members.toString(),
+          inline: true,
+        },
+        {
+          name: "Invite",
+          value: application.invite,
+          inline: true,
+        },
+      ],
+    }
+
+    if (application.representativeDiscordId) {
+      webhookData.fields?.push({
+        name: "Representative",
+        value: `<@${application.representativeDiscordId}>`,
+        inline: true,
+      })
+    }
+
+    if (application.logo) {
+      webhookData.thumbnail = {
+        url: application.logo,
+      }
+    }
+
+    await sendDiscordWebhook(webhookData)
+    return true
+  } catch (error) {
+    console.error("Error sending Discord notification:", error)
+    return false
+  }
+}

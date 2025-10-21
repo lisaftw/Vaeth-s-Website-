@@ -1,24 +1,35 @@
 "use server"
 
 import { supabase } from "@/lib/supabase"
+import { revalidatePath } from "next/cache"
 
 export async function updateServer(formData: FormData) {
   try {
     console.log("Update server action called")
 
-    const index = Number.parseInt(formData.get("index") as string)
+    const serverId = formData.get("serverId") as string
     const name = formData.get("name") as string
     const description = formData.get("description") as string
     const members = Number.parseInt(formData.get("members") as string) || 0
     const invite = formData.get("invite") as string
     const logo = formData.get("logo") as string
+    const leadDelegateName = formData.get("leadDelegateName") as string
+    const leadDelegateId = formData.get("leadDelegateId") as string
 
-    console.log("Updating server at index:", index, { name, description, members, invite, logo })
+    console.log("Updating server:", serverId, {
+      name,
+      description,
+      members,
+      invite,
+      logo,
+      leadDelegateName,
+      leadDelegateId,
+    })
 
-    if (isNaN(index) || index < 0) {
+    if (!serverId) {
       return {
         success: false,
-        message: "Invalid server index",
+        error: "Server ID is required",
       }
     }
 
@@ -26,25 +37,9 @@ export async function updateServer(formData: FormData) {
     if (!name || !description || !members || !invite) {
       return {
         success: false,
-        message: "Please fill in all required fields",
+        error: "Please fill in all required fields",
       }
     }
-
-    // Get all servers to find the one at the index
-    const { data: dbServers, error: fetchError } = await supabase
-      .from("servers")
-      .select("*")
-      .order("created_at", { ascending: false })
-
-    if (fetchError || !dbServers || index >= dbServers.length) {
-      console.error("Error fetching server for update:", fetchError)
-      return {
-        success: false,
-        message: "Server not found",
-      }
-    }
-
-    const serverToUpdate = dbServers[index]
 
     // Update the server in Supabase
     const { error } = await supabase
@@ -55,19 +50,25 @@ export async function updateServer(formData: FormData) {
         members,
         invite,
         logo: logo || null,
+        lead_delegate_name: leadDelegateName || null,
+        lead_delegate_discord_id: leadDelegateId || null,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", serverToUpdate.id)
+      .eq("id", serverId)
 
     if (error) {
       console.error("Error updating server:", error)
       return {
         success: false,
-        message: "Failed to update server",
+        error: "Failed to update server",
       }
     }
 
     console.log("Server updated successfully")
+
+    // Invalidate cache
+    revalidatePath("/")
+    revalidatePath("/admin")
 
     return {
       success: true,
@@ -77,7 +78,7 @@ export async function updateServer(formData: FormData) {
     console.error("Error in updateServer:", error)
     return {
       success: false,
-      message: "Error updating server: " + String(error),
+      error: "Error updating server: " + String(error),
     }
   }
 }

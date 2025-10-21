@@ -96,3 +96,65 @@ export async function getManualStats(): Promise<ManualStats> {
     }
   }
 }
+
+export async function refreshMainServerData(): Promise<void> {
+  try {
+    console.log("=== REFRESHING MAIN SERVER DATA ===")
+
+    // This would typically call the Discord API to get real-time server stats
+    // For now, we'll just log that the refresh was requested
+    console.log("Main server data refresh requested")
+
+    // In a real implementation, you would:
+    // 1. Call Discord API to get server member count
+    // 2. Update the manual_stats table with the new data
+    // 3. Optionally update other server-related stats
+
+    console.log("Main server data refresh completed")
+    console.log("=== END REFRESH MAIN SERVER DATA ===")
+  } catch (error) {
+    console.error("Error refreshing main server data:", error)
+    throw error
+  }
+}
+
+export async function updateServerMemberCount(serverName: string, memberCount: number): Promise<boolean> {
+  try {
+    console.log(`=== UPDATING SERVER MEMBER COUNT: ${serverName} ===`)
+    console.log(`New member count: ${memberCount}`)
+
+    // Find the server by name
+    const { data: servers, error: fetchError } = await supabase
+      .from("servers")
+      .select("*")
+      .eq("name", serverName)
+      .limit(1)
+      .single()
+
+    if (fetchError || !servers) {
+      console.error("Server not found:", serverName)
+      return false
+    }
+
+    // Update the member count
+    const { error: updateError } = await supabase
+      .from("servers")
+      .update({
+        members: memberCount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", servers.id)
+
+    if (updateError) {
+      console.error("Error updating server member count:", updateError)
+      return false
+    }
+
+    console.log(`Server member count updated successfully for ${serverName}`)
+    console.log("=== END UPDATE SERVER MEMBER COUNT ===")
+    return true
+  } catch (error) {
+    console.error("Error in updateServerMemberCount:", error)
+    return false
+  }
+}
